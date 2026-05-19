@@ -1,0 +1,48 @@
+# Python
+.venv/
+__pycache__/
+*.py[cod]
+*$py.class
+*.egg-info/
+dist/
+build/
+*.egg
+
+# Environment & Secrets
+.env
+.env.*
+!.env.example
+*.key
+*.pem
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Qdrant local storage
+data/qdrant_storage/
+
+# Jupyter
+.ipynb_checkpoints/
+
+# Logs
+*.log
+logs/
+
+# Frontend
+node_modules/
+.next/
+*.tsbuildinfo
+
+# Coverage
+htmlcov/
+.coverage
+.coverage.*
+coverage.xml
