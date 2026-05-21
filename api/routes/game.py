@@ -1,8 +1,8 @@
 """Interactive game endpoints — user plays as Candidate round by round.
 
-POST /api/game/init  — Initialize game state from resume + job, run round 0
-POST /api/game/act   — User submits a move, system runs next round
-POST /api/jd/parse   — Parse natural language JD text into StructuredJob
+POST /game/init  — Initialize game state from resume + job, run round 0
+POST /game/act   — User submits a move, system runs next round
+POST /jd/parse   — Parse natural language JD text into StructuredJob
 """
 
 from __future__ import annotations
@@ -17,11 +17,83 @@ from game.engine import BiddingGameEngine
 from game.equilibrium import EquilibriumSolver
 from input.resume_parser import parse_resume
 from models.schemas import AgentAction, StructuredJob, StructuredResume
+from api.session_store import get_store
 
 router = APIRouter(tags=["Game"])
 
-# In-memory game session store (production: use Redis)
-_sessions: dict[str, dict] = {}
+_store = get_store()
+_SESSION_TTL = 3600 * 4  # 4 hours
+
+
+def _save_session(session_id: str, data: dict) -> None:
+    """Serialize and persist session data."""
+    _store.set(session_id, data, ttl=_SESSION_TTL)
+
+
+def _load_session(session_id: str) -> dict | None:
+    """Load session data from store."""
+    return _store.get(session_id)
+
+
+def _serialize_pydantic(obj) -> dict:
+    """Safely serialize a Pydantic model or dataclass."""
+    if hasattr(obj, "model_dump"):
+        return obj.model_dump()
+    if hasattr(obj, "__dataclass_fields__"):
+        from dataclasses import asdict
+        return asdict(obj)
+    return dict(obj) if obj else {}
+
+
+def _deserialize_game_state(data: dict) -> "GameState":
+    """Reconstruct GameState from serialized dict."""
+    from models.schemas import GameState
+    return GameState.model_validate(data)
+
+
+def _deserialize_resume(data: dict) -> StructuredResume:
+    return StructuredResume.model_validate(data)
+
+
+def _deserialize_job(data: dict) -> StructuredJob:
+    return StructuredJob.model_validate(data)
+
+
+def _deserialize_actions(data: list) -> list[AgentAction]:
+    return [AgentAction.model_validate(a) for a in data]
+
+
+def _deserialize_persona(data: dict):
+    from game.persona import HRPersona
+    return HRPersona(**data)
+
+
+def _deserialize_patience(data: dict):
+    from game.patience import PatienceState, PatienceEvent
+    state = PatienceState(
+        hr_patience=data.get("hr_patience", 1.0),
+        candidate_patience=data.get("candidate_patience", 1.0),
+    )
+    for e in data.get("hr_patience_history", []):
+        state.hr_patience_history.append(PatienceEvent(**e))
+    for e in data.get("candidate_patience_history", []):
+        state.candidate_patience_history.append(PatienceEvent(**e))
+    return state
+
+
+def _build_engine_from_session(session: dict) -> BiddingGameEngine:
+    """Reconstruct engine from session data (engine is not serializable)."""
+    engine = BiddingGameEngine(max_rounds=session.get("max_rounds", 8))
+    # Restore runtime refs
+    from game.persona import HRPersona
+    from game.patience import PatienceState
+    persona_data = session.get("persona")
+    if persona_data:
+        engine._persona = HRPersona(**persona_data)
+    patience_data = session.get("patience")
+    if patience_data:
+        engine._patience = _deserialize_patience(patience_data)
+    return engine
 
 # Prompt injection patterns to strip from user inputs
 import re as _re
@@ -59,9 +131,17 @@ class GameActRequest(BaseModel):
     session_id: str
     action_type: str = Field(description="accept | counter_offer | reject")
     salary_amount: int | None = Field(default=None, description="Salary ask in K/yr if counter_offer")
+    message: str | None = Field(default=None, description="Free-text negotiation message from candidate")
 
 
-@router.post("/api/game/init")
+class InfoActRequest(BaseModel):
+    session_id: str
+    action_type: str = Field(description="reveal | fake | conceal")
+    card_id: str = Field(description="Information card ID")
+    stated_value: str | int | float | None = Field(default=None, description="Value to reveal or fake")
+
+
+@router.post("/game/init")
 async def init_game(request: GameInitRequest):
     """Initialize a new interactive game session.
 
@@ -80,26 +160,51 @@ async def init_game(request: GameInitRequest):
         resume = StructuredResume(**r)
         job = StructuredJob(**j)
 
+        # ── Screening phase (lenient — most pass) ──────────────────────────
+        from game.screening import screen_resume
+        screening = screen_resume(resume, job)
+
+        if not screening.passed:
+            return {
+                "status": "screening_failed",
+                "screening": {
+                    "passed": False,
+                    "score": screening.score,
+                    "tier": screening.tier,
+                    "feedback": screening.feedback,
+                    "skill_match": screening.skill_match,
+                    "experience_match": screening.experience_match,
+                },
+                "message": screening.feedback,
+            }
+
         engine = BiddingGameEngine(max_rounds=8)
         state, actions, round_num, persona, patience = await _run_round_0(
-            engine, resume, job, request.market_condition, request.strategy, request.model
+            engine, resume, job, request.market_condition, request.strategy, request.model, screening
         )
 
         session_id = f"session-{uuid.uuid4().hex[:8]}"
-        _sessions[session_id] = {
-            "engine": engine,
-            "state": state,
-            "resume": resume,
-            "job": job,
+        _save_session(session_id, {
+            "max_rounds": 8,
+            "state": _serialize_pydantic(state),
+            "resume": _serialize_pydantic(resume),
+            "job": _serialize_pydantic(job),
             "round": round_num,
             "market_condition": request.market_condition,
             "strategy": request.strategy,
             "model": request.model,
-            "actions": actions,
+            "actions": [_serialize_pydantic(a) for a in actions],
             "outcome": None,
-            "persona": persona,
-            "patience": patience,
-        }
+            "persona": _serialize_pydantic(persona),
+            "patience": _serialize_pydantic(patience),
+            "created_at": datetime.now().isoformat(),
+            "screening": {
+                "score": screening.score,
+                "tier": screening.tier,
+                "feedback": screening.feedback,
+                "opening_offer_multiplier": screening.opening_offer_multiplier,
+            },
+        })
 
         # Build response for round 0
         return {
@@ -121,35 +226,66 @@ async def init_game(request: GameInitRequest):
             "round_actions": [a.model_dump() for a in actions],
             "prompt": _build_prompt(state, request.strategy),
             "options": _build_options(state, request.strategy),
+            "screening": {
+                "score": screening.score,
+                "tier": screening.tier,
+                "feedback": screening.feedback,
+                "opening_offer_multiplier": screening.opening_offer_multiplier,
+            },
         }
     except Exception as e:
         return {"status": "error", "message": str(e)}
 
 
-@router.post("/api/game/act")
+@router.post("/game/act")
 async def game_act(request: GameActRequest):
     """User submits their move as the candidate. System runs HR/Market/Interviewer responses."""
-    session = _sessions.get(request.session_id)
+    session = _load_session(request.session_id)
     if not session:
         return {"status": "error", "message": "会话已过期，请重新开始"}
 
     try:
-        state = session["state"]
+        state = _deserialize_game_state(session["state"])
         round_num = session["round"]
-        engine = session["engine"]
+        engine = _build_engine_from_session(session)
+
+        # ── Free-text message parsing ─────────────────────────────────────
+        action_type = request.action_type
+        salary_amount = request.salary_amount
+        reasoning = "用户决策"
+
+        if request.message and request.message.strip():
+            msg = request.message.strip().lower()
+            reasoning = request.message.strip()
+
+            # Detect accept/reject intent
+            if any(k in msg for k in ("接受", "同意", "好的", "可以", "没问题", "接受offer", "join", "accept")):
+                action_type = "accept"
+            elif any(k in msg for k in ("拒绝", "算了", "不考虑", "抱歉", "reject", "pass", "decline")):
+                action_type = "reject"
+            else:
+                action_type = "counter_offer"
+
+            # Extract salary number (e.g., "55k", "60千", "期望65")
+            import re
+            m = re.search(r'(\d{2,3})\s*[k千K/]', request.message)
+            if not m:
+                m = re.search(r'(?:期望|底线|至少|不低于|要|给|到)\s*(\d{2,3})', request.message)
+            if m:
+                salary_amount = int(m.group(1))
 
         # Validate action
-        if request.action_type == "accept" and not state.public_offer:
+        if action_type == "accept" and not state.public_offer:
             return {"status": "error", "message": "当前没有HR报价，无法接受。请先提出你的薪资期望。"}
-        if request.action_type == "counter_offer" and not request.salary_amount:
+        if action_type == "counter_offer" and not salary_amount:
             return {"status": "error", "message": "还价需要指定薪资数额。"}
 
         # Build user's action as candidate
         user_action = AgentAction(
             player="candidate",
-            action_type=request.action_type,
-            params={"salary_ask": request.salary_amount} if request.salary_amount else {},
-            reasoning="用户决策",
+            action_type=action_type,
+            params={"salary_ask": salary_amount} if salary_amount else {},
+            reasoning=reasoning,
             confidence=1.0,
             round=round_num,
             timestamp=datetime.now().isoformat(),
@@ -159,11 +295,11 @@ async def game_act(request: GameActRequest):
         # Run HR response with LLM deliberation
         from game.players.base import PlayerConfig
         from game.players.hr import HRPlayer
-        persona = session.get("persona")
+        persona_data = session.get("persona")
         model = session.get("model")
         hr = HRPlayer(state.hr_type, config=PlayerConfig(use_llm=True, model=model))
-        if persona:
-            hr.set_persona(persona)
+        if persona_data:
+            hr.set_persona(_deserialize_persona(persona_data))
         hr_action = await hr.act(state, hr.get_private_view(state, "hr"))
         state.action_history.append(hr_action)
 
@@ -177,7 +313,7 @@ async def game_act(request: GameActRequest):
         # Update patience
         engine._update_patience(
             state, user_action, hr_action,
-            session["resume"], session.get("market_condition", "normal")
+            _deserialize_resume(session["resume"]), session.get("market_condition", "normal")
         )
 
         # Snapshot
@@ -192,7 +328,7 @@ async def game_act(request: GameActRequest):
 
         session["outcome"] = outcome
         session["round"] = round_num + 1
-        session["state"] = state
+        session["state"] = _serialize_pydantic(state)
 
         if outcome:
             # Game over — build final result
@@ -202,6 +338,7 @@ async def game_act(request: GameActRequest):
             # Store in session for debrief chat
             session["final_result"] = result.model_dump()
             session["equilibrium"] = eq.model_dump()
+            _save_session(request.session_id, session)
             return {
                 "status": "ok",
                 "session_id": request.session_id,
@@ -227,8 +364,13 @@ async def game_act(request: GameActRequest):
 
         # Extract HR deliberation for frontend
         hr_deliberation = hr_action.params.get("_deliberation") if hr_action.params else None
-        patience = session.get("patience")
+        patience_data = session.get("patience")
+        patience = _deserialize_patience(patience_data) if patience_data else None
         last_patience_events = getattr(state, "patience_events", [])[-3:] if hasattr(state, "patience_events") else []
+
+        # Persist updated session
+        session["state"] = _serialize_pydantic(state)
+        _save_session(request.session_id, session)
 
         return {
             "status": "ok",
@@ -247,7 +389,20 @@ async def game_act(request: GameActRequest):
         return {"status": "error", "message": str(e)}
 
 
-@router.post("/api/jd/parse")
+@router.post("/resume/parse")
+async def parse_resume_text(resume_text: str = Form(..., description="Natural language resume text")):
+    """Parse natural language resume text into StructuredResume."""
+    try:
+        resume_text = _sanitize_input(resume_text)
+        if not resume_text.strip():
+            return {"status": "error", "message": "简历内容不能为空"}
+        resume = await parse_resume(resume_text, source_type="text")
+        return {"status": "ok", "resume": resume.model_dump()}
+    except Exception as e:
+        return {"status": "error", "message": str(e)}
+
+
+@router.post("/jd/parse")
 async def parse_jd(jd_text: str = Form(..., description="Natural language job description text")):
     """Parse a natural language job posting into StructuredJob."""
     try:
@@ -260,16 +415,129 @@ async def parse_jd(jd_text: str = Form(..., description="Natural language job de
         return {"status": "error", "message": str(e)}
 
 
-@router.get("/api/models")
+@router.get("/models")
 async def list_models():
     """Return available LLM models for the frontend model selector."""
     from llm.providers import get_available_models
     return {"status": "ok", "models": get_available_models()}
 
 
-@router.post("/api/game/act/stream")
+@router.get("/game/list")
+async def list_games():
+    """List all active game sessions with summary info.
+
+    Returns brief metadata for each session (not full state) to populate
+    the dashboard投递 list.
+    """
+    try:
+        keys = _store.list_keys("session-*")
+        sessions = []
+        for key in keys:
+            data = _store.get(key)
+            if not data:
+                continue
+            # Extract summary fields only
+            resume = data.get("resume", {})
+            job = data.get("job", {})
+            outcome = data.get("outcome")
+            state = data.get("state", {})
+            round_num = data.get("round", 0)
+            strategy = data.get("strategy", "balanced")
+            created_at = data.get("created_at")
+
+            sessions.append({
+                "session_id": key,
+                "candidate_name": resume.get("name", "未知"),
+                "job_title": job.get("title", "未知岗位"),
+                "job_company": job.get("company", "未知公司"),
+                "job_level": job.get("level", ""),
+                "status": outcome if outcome else "negotiating",
+                "round": round_num,
+                "max_rounds": data.get("max_rounds", 8),
+                "strategy": strategy,
+                "public_offer": state.get("public_offer") if isinstance(state, dict) else None,
+                "created_at": created_at,
+            })
+
+        # Sort by created_at desc, then by session_id
+        sessions.sort(key=lambda s: (s.get("created_at") or "", s["session_id"]), reverse=True)
+        return {"status": "ok", "sessions": sessions, "total": len(sessions)}
+    except Exception as e:
+        return {"status": "error", "message": str(e)}
+
+
+@router.get("/game/state")
+async def get_game_state(session_id: str):
+    """Get current game state by session_id. Used by /play page to restore
+    a session that was initialized from the home page."""
+    try:
+        session = _load_session(session_id)
+        if not session:
+            return {"status": "error", "message": "会话不存在或已过期"}
+
+        state_data = session.get("state")
+        state = _deserialize_game_state(state_data) if state_data else None
+        resume_data = session.get("resume")
+        job_data = session.get("job")
+        round_num = session.get("round", 0)
+        outcome = session.get("outcome")
+        persona_data = session.get("persona")
+        patience_data = session.get("patience")
+        screening_data = session.get("screening")
+        strategy = session.get("strategy", "balanced")
+
+        # Deserialize patience for hr_patience value
+        patience = _deserialize_patience(patience_data) if patience_data else None
+
+        # Build init-like response for frontend
+        response = {
+            "status": "ok",
+            "session_id": session_id,
+            "round": round_num,
+            "phase": "finished" if outcome else "candidate_turn",
+            "outcome": outcome,
+            "game_state": _serialize_state(state) if state else {},
+            "resume": resume_data,
+            "job": job_data,
+            "hr_persona": {
+                "name": persona_data.get("name", ""),
+                "archetype": persona_data.get("archetype", ""),
+                "tagline": persona_data.get("tagline", ""),
+                "avatar_expression": persona_data.get("avatar_expression", ""),
+                "avatar_color": persona_data.get("avatar_color", ""),
+                "greeting": persona_data.get("greeting", ""),
+                "tone_style": persona_data.get("tone_style", ""),
+            } if persona_data else {},
+            "hr_patience": patience.hr_patience if patience else 1.0,
+            "screening": screening_data,
+            "strategy": strategy,
+            "market_condition": session.get("market_condition", "normal"),
+            "model": session.get("model"),
+        }
+
+        # If game is active, include current prompt and options
+        if state and not outcome:
+            response["prompt"] = _build_prompt(state, strategy)
+            response["options"] = _build_options(state, strategy)
+            # Include latest actions for chat history
+            actions = session.get("actions", [])
+            response["round_actions"] = actions[-10:] if actions else []
+
+        # If game finished, include final result
+        if outcome:
+            response["final_result"] = session.get("final_result")
+            response["equilibrium"] = session.get("equilibrium")
+            response["message"] = _outcome_message(outcome, state) if state else ""
+            response["termination_reason"] = getattr(state, "termination_reason", "") if state else ""
+
+        return response
+    except Exception as e:
+        return {"status": "error", "message": str(e)}
+
+
+@router.post("/game/act/stream")
 async def game_act_stream(request: GameActRequest):
-    """SSE streaming variant of /api/game/act.
+    """SSE streaming variant of /game/act.
 
     Streams HR deliberation in real-time so the frontend can render
     the AI's thinking process as it happens, reducing perceived latency.
@@ -277,25 +545,50 @@ async def game_act_stream(request: GameActRequest):
     import json as _json
     from starlette.responses import StreamingResponse
 
-    session = _sessions.get(request.session_id)
+    session = _load_session(request.session_id)
     if not session:
         return {"status": "error", "message": "会话已过期，请重新开始"}
 
-    state = session["state"]
+    state = _deserialize_game_state(session["state"])
     round_num = session["round"]
 
+    # ── Free-text message parsing ─────────────────────────────────────
+    action_type = request.action_type
+    salary_amount = request.salary_amount
+    reasoning = "用户决策"
+
+    if request.message and request.message.strip():
+        msg = request.message.strip().lower()
+        reasoning = request.message.strip()
+
+        # Detect accept/reject intent
+        if any(k in msg for k in ("接受", "同意", "好的", "可以", "没问题", "接受offer", "join", "accept")):
+            action_type = "accept"
+        elif any(k in msg for k in ("拒绝", "算了", "不考虑", "抱歉", "reject", "pass", "decline")):
+            action_type = "reject"
+        else:
+            action_type = "counter_offer"
+
+        # Extract salary number
+        import re
+        m = re.search(r'(\d{2,3})\s*[k千K/]', request.message)
+        if not m:
+            m = re.search(r'(?:期望|底线|至少|不低于|要|给|到)\s*(\d{2,3})', request.message)
+        if m:
+            salary_amount = int(m.group(1))
+
     # Validate action
-    if request.action_type == "accept" and not state.public_offer:
+    if action_type == "accept" and not state.public_offer:
         return {"status": "error", "message": "当前没有HR报价，无法接受。请先提出你的薪资期望。"}
-    if request.action_type == "counter_offer" and not request.salary_amount:
+    if action_type == "counter_offer" and not salary_amount:
         return {"status": "error", "message": "还价需要指定薪资数额。"}
 
     # Build user's action
     user_action = AgentAction(
         player="candidate",
-        action_type=request.action_type,
-        params={"salary_ask": request.salary_amount} if request.salary_amount else {},
-        reasoning="用户决策",
+        action_type=action_type,
+        params={"salary_ask": salary_amount} if salary_amount else {},
+        reasoning=reasoning,
         confidence=1.0,
         round=round_num,
         timestamp=datetime.now().isoformat(),
@@ -303,8 +596,9 @@ async def game_act_stream(request: GameActRequest):
     state.action_history.append(user_action)
 
     model = session.get("model")
-    persona = session.get("persona")
-    engine = session["engine"]
+    persona_data = session.get("persona")
+    persona = _deserialize_persona(persona_data) if persona_data else None
+    engine = _build_engine_from_session(session)
 
     async def event_stream():
         from game.players.hr import HRPlayer as _HRPlayer
@@ -385,7 +679,7 @@ async def game_act_stream(request: GameActRequest):
 
             session["outcome"] = outcome
             session["round"] = round_num + 1
-            session["state"] = state
+            session["state"] = _serialize_pydantic(state)
 
             if outcome:
                 result_obj = engine._build_result(state, state.game_id)
@@ -393,6 +687,7 @@ async def game_act_stream(request: GameActRequest):
                 eq = solver.solve(state)
                 session["final_result"] = result_obj.model_dump()
                 session["equilibrium"] = eq.model_dump()
+                _save_session(request.session_id, session)
                 yield f"data: {_json.dumps({'type': 'game_over', 'outcome': outcome, 'game_state': _serialize_state(state), 'final_result': result_obj.model_dump(), 'equilibrium': eq.model_dump(), 'message': _outcome_message(outcome, state), 'termination_reason': getattr(state, 'termination_reason', '')}, ensure_ascii=False)}\n\n"
             else:
                 # Continue to next round
@@ -406,8 +701,12 @@ async def game_act_stream(request: GameActRequest):
                 engine._apply_market_signal(state, market_action)
 
                 hr_deliberation = hr_action.params.get("_deliberation") if hr_action.params else None
-                patience = session.get("patience")
+                patience_data = session.get("patience")
+                patience = _deserialize_patience(patience_data) if patience_data else None
                 last_patience_events = getattr(state, "patience_events", [])[-3:] if hasattr(state, "patience_events") else []
+
+                session["state"] = _serialize_pydantic(state)
+                _save_session(request.session_id, session)
 
                 yield f"data: {_json.dumps({'type': 'round_complete', 'round': next_round, 'phase': 'candidate_turn', 'game_state': _serialize_state(state), 'last_hr_action': hr_action.model_dump(), 'hr_deliberation': hr_deliberation, 'hr_patience': patience.hr_patience if patience else 1.0, 'patience_events': last_patience_events, 'prompt': _build_prompt(state, session.get('strategy', 'balanced')), 'options': _build_options(state, session.get('strategy', 'balanced'))}, ensure_ascii=False)}\n\n"
 
@@ -427,7 +726,7 @@ async def game_act_stream(request: GameActRequest):
 
 # ── Internal helpers ──────────────────────────────────────────────────────
 
-async def _run_round_0(engine, resume, job, market, strategy, model: str | None = None):
+async def _run_round_0(engine, resume, job, market, strategy, model: str | None = None, screening=None):
     """Run round 0: market signal + interviewer eval. Returns state ready for candidate turn."""
     candidate_type = engine._infer_candidate_type(resume, strategy)
     hr_type = engine._infer_hr_type(job, market)
@@ -438,19 +737,24 @@ async def _run_round_0(engine, resume, job, market, strategy, model: str | None 
     from game.patience import PatienceState
     from models.schemas import BeliefState, GameState
 
-    # Generate persona and patience
+    # Generate persona and patience (adjusted by screening tier)
     persona = generate_random_persona()
-    patience = PatienceState(hr_patience=persona.patience_baseline)
+    base_patience = persona.patience_baseline
+    if screening:
+        base_patience = max(0.3, min(1.0, base_patience + screening.patience_adjustment))
+    patience = PatienceState(hr_patience=base_patience)
     engine._persona = persona
     engine._patience = patience
 
     game_id = f"game-{uuid.uuid4().hex[:8]}"
+    screening_mul = screening.opening_offer_multiplier if screening else 1.0
     state = GameState(
         game_id=game_id, resume=resume, job=job,
         round=0, max_rounds=engine.max_rounds,
         candidate_type=candidate_type, hr_type=hr_type,
         interviewer_type=interviewer_type, market_type=market_type,
         public_status="negotiating",
+        screening_multiplier=screening_mul,
         candidate_beliefs={
             "hr": BeliefState(about_player="hr"),
             "interviewer": BeliefState(about_player="interviewer"),
@@ -527,7 +831,7 @@ async def _parse_jd_text(text: str) -> StructuredJob:
                 },
                 {"role": "user", "content": text[:4000]},
             ]
-            raw = await call_llm_chat(messages, temperature=0.1, max_retries=2)
+            raw = await call_llm_chat(messages, temperature=0.1, max_retries=2, model="qwen-turbo")
             import json as _json, re as _re
             raw = raw.strip()
             m = _re.search(r"\{[\s\S]*\}", raw)
@@ -795,6 +1099,47 @@ def _build_options(state, strategy: str = "balanced") -> list[dict]:
             })
 
     return options
+
+
+@router.post("/game/info_act")
+async def info_act(request: InfoActRequest):
+    """Candidate plays an information warfare action."""
+    session = _load_session(request.session_id)
+    if not session:
+        return {"status": "error", "message": "会话已过期，请重新开始"}
+
+    try:
+        state = _deserialize_game_state(session["state"])
+        engine = _build_engine_from_session(session)
+
+        from game.infowar import InfoWarEngine
+        from models.schemas import InformationAction
+
+        info_engine = getattr(engine, "_info_engine", None)
+        if not info_engine:
+            info_engine = InfoWarEngine()
+            engine._info_engine = info_engine
+
+        action = InformationAction(
+            action_type=request.action_type,
+            target_card=request.card_id,
+            stated_value=request.stated_value,
+        )
+
+        result = info_engine.apply_candidate_action(state, action)
+
+        # Persist updated state
+        session["state"] = _serialize_pydantic(state)
+        _save_session(request.session_id, session)
+
+        return {
+            "status": "ok",
+            "info_cards": [c.model_dump() for c in state.candidate_hand],
+            "trust_state": state.trust_state.model_dump(),
+            "narrative": result.narrative,
+        }
+    except Exception as e:
+        return {"status": "error", "message": str(e)}
 
 
 def _outcome_message(outcome: str, state) -> str:

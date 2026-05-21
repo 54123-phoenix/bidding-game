@@ -11,8 +11,11 @@ from pydantic import BaseModel, Field
 
 router = APIRouter(tags=["Debrief-Chat"])
 
-# Import game sessions from game.py
-from api.routes.game import _sessions
+# Import session store
+from api.session_store import get_store
+
+_store = get_store()
+_SESSION_TTL = 3600 * 4  # 4 hours
 
 
 class DebriefChatRequest(BaseModel):
@@ -112,10 +115,10 @@ def _build_system_prompt(session: dict) -> str:
 6. 不要重复上面的数据原文，而是解释数据背后的含义。"""
 
 
-@router.post("/api/debrief/chat")
+@router.post("/debrief/chat")
 async def debrief_chat(request: DebriefChatRequest):
     """Chat with the debrief advisor. Uses real game data as context."""
-    session = _sessions.get(request.session_id)
+    session = _store.get(request.session_id)
     if not session:
         return {"status": "error", "message": "会话已过期，请重新开始"}
 

@@ -28,6 +28,7 @@ interface NarrativeResultsProps {
   onChat: (msg: string) => void;
   onRestart: () => void;
   onHome?: () => void;
+  hideStats?: boolean;
 }
 
 // ═══════════════════════════════════════════════════════════
@@ -85,6 +86,7 @@ export default function NarrativeResults({
   onChat,
   onRestart,
   onHome,
+  hideStats,
 }: NarrativeResultsProps) {
   const narrative = generateNarrative(
     outcome,
@@ -131,33 +133,35 @@ export default function NarrativeResults({
         </motion.h1>
       </motion.div>
 
-      {/* Key Stats */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-        <StatCard
-          label="结果"
-          value={isAccepted ? "已录取" : "已拒绝"}
-          color={isAccepted ? "text-emerald-400" : "text-red-400"}
-          delay={0.5}
-        />
-        <StatCard
-          label="最终薪资"
-          value={finalSalary ? `${finalSalary}K` : "—"}
-          color="text-white"
-          delay={0.6}
-        />
-        <StatCard
-          label="谈判轮次"
-          value={`${negotiationRounds}`}
-          color="text-white"
-          delay={0.7}
-        />
-        <StatCard
-          label="成功率"
-          value={`${Math.round(successProbability * 100)}%`}
-          color="text-cyan-400"
-          delay={0.8}
-        />
-      </div>
+      {/* Key Stats — hidden when inside GameResultsView (stats shown at top level) */}
+      {!hideStats && (
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+          <StatCard
+            label="结果"
+            value={isAccepted ? "已录取" : "已拒绝"}
+            color={isAccepted ? "text-emerald-400" : "text-red-400"}
+            delay={0.5}
+          />
+          <StatCard
+            label="最终薪资"
+            value={finalSalary ? `${finalSalary}K` : "—"}
+            color="text-white"
+            delay={0.6}
+          />
+          <StatCard
+            label="谈判轮次"
+            value={`${negotiationRounds}`}
+            color="text-white"
+            delay={0.7}
+          />
+          <StatCard
+            label="成功率"
+            value={`${Math.round(successProbability * 100)}%`}
+            color="text-cyan-400"
+            delay={0.8}
+          />
+        </div>
+      )}
 
       {/* Story Narrative */}
       <motion.div

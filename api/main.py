@@ -80,7 +80,28 @@ def create_app() -> FastAPI:
 
     @app.get("/health")
     async def health():
-        return {"status": "ok", "version": app.version}
+        checks = {"api": True}
+        # Redis check
+        try:
+            from api.session_store import get_store
+            store = get_store()
+            checks["redis"] = store.exists("__health_check__") is not None or True
+        except Exception:
+            checks["redis"] = False
+        # Qdrant check
+        try:
+            import os, urllib.request
+            qdrant_url = os.getenv("QDRANT_URL", "http://localhost:6333")
+            urllib.request.urlopen(f"{qdrant_url}/healthz", timeout=2)
+            checks["qdrant"] = True
+        except Exception:
+            checks["qdrant"] = False
+        all_ok = all(checks.values())
+        return {
+            "status": "ok" if all_ok else "degraded",
+            "version": app.version,
+            "checks": checks,
+        }
 
     from api.routes.upload import router as upload_router
     from api.routes.simulate import router as simulate_router
@@ -97,8 +118,8 @@ def create_app() -> FastAPI:
     app.include_router(report_router, prefix="/api")
     app.include_router(demo_router, prefix="/api")
     app.include_router(debate_router, prefix="/api")
-    app.include_router(game_router)
-    app.include_router(debrief_chat_router)
+    app.include_router(game_router, prefix="/api")
+    app.include_router(debrief_chat_router, prefix="/api")
 
     return app
 
