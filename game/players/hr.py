@@ -125,6 +125,11 @@ class HRPlayer(BayesianPlayer):
         offer_pct = 0.75 + quality_discount + pt.urgency * 0.10
         offer = int(budget * offer_pct)
 
+        # Apply resume screening multiplier (tier B gets lower opening offer)
+        screening_mul = getattr(state, "screening_multiplier", 1.0)
+        if screening_mul < 1.0:
+            offer = int(offer * screening_mul)
+
         # Cap at equity constraint
         offer = min(offer, int(equity_limit * 0.95))
         offer = (offer // 5) * 5
@@ -140,6 +145,7 @@ class HRPlayer(BayesianPlayer):
                 f"Initial offer: {offer}K/yr ({(offer/budget):.0%} of budget). "
                 f"Candidate est. quality: {estimated_quality:.0%}. "
                 f"Urgency: {pt.urgency:.0%}. Pool quality: {pt.candidate_pool_quality:.0%}."
+                + (f" Screening adjustment: {screening_mul:.0%}." if screening_mul < 1.0 else "")
             ),
             confidence=estimated_quality,
             round=state.round, timestamp=datetime.now().isoformat(),

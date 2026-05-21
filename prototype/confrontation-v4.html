@@ -1,0 +1,840 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>谈判对峙 v4 — 简历扫描开场</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+      background: #050508;
+      color: #e8e6e0;
+      overflow: hidden;
+      height: 100vh;
+    }
+
+    .bg-grid {
+      position: fixed; inset: 0;
+      background-image:
+        linear-gradient(rgba(255,255,255,0.015) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255,255,255,0.015) 1px, transparent 1px);
+      background-size: 50px 50px;
+      pointer-events: none;
+    }
+
+    @keyframes barShine {
+      0% { transform: translateX(-100%); }
+      100% { transform: translateX(200%); }
+    }
+    @keyframes shake {
+      0%, 100% { transform: translateX(0); }
+      20% { transform: translateX(-4px); }
+      40% { transform: translateX(4px); }
+      60% { transform: translateX(-2px); }
+      80% { transform: translateX(2px); }
+    }
+    @keyframes slideInLeft {
+      from { opacity: 0; transform: translateX(-50px) scale(0.95); }
+      to { opacity: 1; transform: translateX(0) scale(1); }
+    }
+    @keyframes slideInRight {
+      from { opacity: 0; transform: translateX(50px) scale(0.95); }
+      to { opacity: 1; transform: translateX(0) scale(1); }
+    }
+    @keyframes impactPop {
+      0% { transform: scale(2.5); opacity: 0; }
+      50% { transform: scale(1.1); opacity: 1; }
+      100% { transform: scale(1); opacity: 0; }
+    }
+    @keyframes pulseGlowRed {
+      0%, 100% { box-shadow: inset 0 0 10px rgba(239,68,68,0.2); }
+      50% { box-shadow: inset 0 0 25px rgba(239,68,68,0.5); }
+    }
+    @keyframes scanDown {
+      0% { top: 0; opacity: 0; }
+      10% { opacity: 1; }
+      90% { opacity: 1; }
+      100% { top: 100%; opacity: 0; }
+    }
+    @keyframes countUp {
+      from { transform: translateY(20px); opacity: 0; }
+      to { transform: translateY(0); opacity: 1; }
+    }
+    @keyframes glowPulse {
+      0%, 100% { transform: translate(-50%,-50%) scale(1); opacity: 0.3; }
+      50% { transform: translate(-50%,-50%) scale(1.5); opacity: 0.6; }
+    }
+    @keyframes stampIn {
+      0% { transform: scale(3) rotate(var(--r, -8deg)); opacity: 0; }
+      100% { transform: scale(1) rotate(var(--r, -8deg)); opacity: 0.95; }
+    }
+    @keyframes breathe {
+      0%, 100% { opacity: 0.3; }
+      50% { opacity: 1; }
+    }
+
+    .panel {
+      background: rgba(10, 12, 18, 0.85);
+      border: 1px solid rgba(42, 53, 72, 0.5);
+      backdrop-filter: blur(8px);
+    }
+    .bar-track {
+      height: 8px; background: #0a0e14; border-radius: 4px;
+      overflow: hidden; position: relative; border: 1px solid #1c2536;
+    }
+    .bar-fill {
+      height: 100%; border-radius: 4px;
+      transition: width 0.6s cubic-bezier(0.34, 1.56, 0.64, 1);
+      position: relative; overflow: hidden;
+    }
+    .bar-fill::after {
+      content: ''; position: absolute; inset: 0;
+      background: linear-gradient(90deg, transparent, rgba(255,255,255,0.12), transparent);
+      animation: barShine 2.5s infinite;
+    }
+    .bar-fill.danger { animation: pulseGlowRed 1s infinite; }
+
+    .msg-cand {
+      animation: slideInLeft 0.35s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+      border-left: 2px solid #3b82f6; background: rgba(59, 130, 246, 0.06);
+    }
+    .msg-hr {
+      animation: slideInRight 0.35s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+      border-right: 2px solid #f43f5e; background: rgba(244, 63, 94, 0.06);
+    }
+
+    .impact-text {
+      animation: impactPop 0.7s ease-out forwards;
+      font-weight: 900; letter-spacing: 0.1em; pointer-events: none;
+    }
+
+    .scan-line {
+      position: absolute; left: 0; right: 0; height: 2px;
+      background: linear-gradient(90deg, transparent, rgba(34,211,238,0.5), transparent);
+      animation: scanDown 2.5s ease-in-out infinite;
+      pointer-events: none; z-index: 50;
+    }
+
+    .vs-zone { position: relative; }
+    .vs-zone::before {
+      content: ''; position: absolute; top: 50%; left: 50%;
+      width: 100px; height: 100px; border-radius: 50%;
+      background: radial-gradient(circle, rgba(239,68,68,0.12), transparent 70%);
+      animation: glowPulse 2.5s ease-in-out infinite; pointer-events: none;
+    }
+
+    .tactic-btn {
+      transition: all 0.15s ease; cursor: pointer;
+    }
+    .tactic-btn:hover {
+      transform: translateY(-2px);
+      border-color: rgba(34, 211, 238, 0.4);
+      box-shadow: 0 4px 20px rgba(34, 211, 238, 0.08);
+    }
+    .tactic-btn:active { transform: scale(0.97); }
+    .tactic-btn:disabled { opacity: 0.4; cursor: not-allowed; transform: none; }
+
+    .signal-row {
+      transition: all 0.3s ease;
+    }
+    .signal-row.scanned {
+      border-color: rgba(59, 130, 246, 0.4) !important;
+      background: rgba(59, 130, 246, 0.1) !important;
+    }
+
+    .stamp {
+      animation: stampIn 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+      border: 3px solid; padding: 12px 32px;
+      font-weight: 900; letter-spacing: 0.15em;
+      text-transform: uppercase; border-radius: 4px;
+    }
+
+    ::-webkit-scrollbar { width: 4px; }
+    ::-webkit-scrollbar-thumb { background: #2a3548; border-radius: 2px; }
+  </style>
+</head>
+<body>
+  <div class="bg-grid"></div>
+
+  <div id="app" class="relative z-10 h-screen flex flex-col">
+
+    <!-- ═══════════════════════════════════════════════════════════════ -->
+    <!-- PHASE: Resume Scan Intro                                       -->
+    <!-- ═══════════════════════════════════════════════════════════════ -->
+    <div id="phaseScan" class="flex-1 flex flex-col items-center justify-center p-6">
+      <div class="max-w-lg w-full space-y-6">
+        <!-- Header -->
+        <div class="text-center mb-8">
+          <div class="text-xs text-neutral-600 uppercase tracking-[0.3em] mb-2">简历解析中</div>
+          <h1 class="text-2xl font-bold text-white">信号提取系统</h1>
+          <p class="text-xs text-neutral-500 mt-1">扫描候选人简历，提取谈判筹码...</p>
+        </div>
+
+        <!-- Resume Card being scanned -->
+        <div class="panel rounded-xl p-5 relative overflow-hidden" style="min-height: 200px;">
+          <div id="scanLine" class="scan-line" style="display: none;"></div>
+
+          <!-- Resume header -->
+          <div class="flex items-center gap-3 mb-4">
+            <svg width="40" height="40" viewBox="0 0 100 100" class="rounded-full shrink-0">
+              <circle cx="50" cy="50" r="50" fill="#1e3a5f"/>
+              <circle cx="32" cy="38" r="16" fill="#3b82f6" opacity="0.85"/>
+              <circle cx="68" cy="42" r="13" fill="#60a5fa" opacity="0.65"/>
+              <circle cx="50" cy="72" r="18" fill="#2563eb" opacity="0.75"/>
+            </svg>
+            <div>
+              <div class="text-sm font-bold text-white">张明远</div>
+              <div class="text-[10px] text-neutral-600">3年经验 · P6 · 后端开发</div>
+            </div>
+          </div>
+
+          <!-- Signals list (will be scanned one by one) -->
+          <div id="signalList" class="space-y-2">
+            <div class="signal-row panel rounded-lg p-3 border border-transparent flex items-center justify-between" data-signal="c9">
+              <span class="text-sm text-neutral-500">🎓 C9 计算机硕士</span>
+              <span class="text-[10px] text-neutral-700 font-mono opacity-0 signal-value">+15 HR耐心</span>
+            </div>
+            <div class="signal-row panel rounded-lg p-3 border border-transparent flex items-center justify-between" data-signal="byte">
+              <span class="text-sm text-neutral-500">🏢 字节跳动 3年</span>
+              <span class="text-[10px] text-neutral-700 font-mono opacity-0 signal-value">+12 HR耐心</span>
+            </div>
+            <div class="signal-row panel rounded-lg p-3 border border-transparent flex items-center justify-between" data-signal="project">
+              <span class="text-sm text-neutral-500">🚀 双十一核心链路</span>
+              <span class="text-[10px] text-neutral-700 font-mono opacity-0 signal-value">+18 HR耐心</span>
+            </div>
+            <div class="signal-row panel rounded-lg p-3 border border-transparent flex items-center justify-between" data-signal="acm">
+              <span class="text-sm text-neutral-500">🏆 ACM-ICPC 金牌</span>
+              <span class="text-[10px] text-neutral-700 font-mono opacity-0 signal-value">+10 HR耐心</span>
+            </div>
+          </div>
+
+          <!-- Running totals -->
+          <div class="mt-4 pt-3 border-t border-neutral-800 flex items-center justify-between">
+            <div class="text-[10px] text-neutral-600 uppercase tracking-wider">HR耐心加成</div>
+            <div class="text-sm font-mono text-blue-400">
+              +<span id="scanningBonus">0</span> 初始耐心
+            </div>
+          </div>
+        </div>
+
+        <!-- HR Environment (also scanning) -->
+        <div class="panel rounded-xl p-4">
+          <div class="text-[10px] text-rose-400 uppercase tracking-wider font-bold mb-3 flex items-center gap-2">
+            <span>👔</span> HR 环境扫描
+          </div>
+          <div id="hrSignalList" class="space-y-2">
+            <div class="signal-row panel rounded-lg p-2.5 border border-transparent flex items-center justify-between" data-signal="urgent">
+              <span class="text-xs text-neutral-500">⏰ 岗位紧急度: 高</span>
+              <span class="text-[10px] text-neutral-700 font-mono opacity-0 signal-value">+20 耐心</span>
+            </div>
+            <div class="signal-row panel rounded-lg p-2.5 border border-transparent flex items-center justify-between" data-signal="budget">
+              <span class="text-xs text-neutral-500">💰 预算: 40-60k/月</span>
+              <span class="text-[10px] text-neutral-700 font-mono opacity-0 signal-value">基准</span>
+            </div>
+            <div class="signal-row panel rounded-lg p-2.5 border border-transparent flex items-center justify-between" data-signal="pool">
+              <span class="text-xs text-neutral-500">👥 候选人池: 稀少</span>
+              <span class="text-[10px] text-neutral-700 font-mono opacity-0 signal-value">倾向+15%</span>
+            </div>
+          </div>
+          <div class="mt-3 pt-2 border-t border-neutral-800 flex items-center justify-between">
+            <div class="text-[10px] text-neutral-600 uppercase tracking-wider">环境加成</div>
+            <div class="text-sm font-mono text-rose-400">
+              +<span id="hrScanningBonus">0</span> 初始耐心
+            </div>
+          </div>
+        </div>
+
+        <!-- Final stats preview -->
+        <div id="finalStats" class="hidden panel rounded-xl p-4 space-y-3">
+          <div class="text-[10px] text-neutral-500 uppercase tracking-wider text-center">初始状态</div>
+          <div class="grid grid-cols-2 gap-4">
+            <div class="text-center">
+              <div class="text-xs text-neutral-600">候选人耐心</div>
+              <div class="text-xl font-mono font-bold text-blue-400">
+                <span id="finalCandPatience">100</span>
+                <span class="text-xs text-blue-600">/100</span>
+              </div>
+            </div>
+            <div class="text-center">
+              <div class="text-xs text-neutral-600">HR 耐心</div>
+              <div class="text-xl font-mono font-bold text-rose-400">
+                <span id="finalHrPatience">100</span>
+                <span class="text-xs text-rose-600">/100</span>
+              </div>
+            </div>
+          </div>
+          <div class="text-center">
+            <div class="text-xs text-neutral-600">HR 初始倾向</div>
+            <div class="text-lg font-mono font-bold text-amber-400" id="finalDisposition">35%</div>
+          </div>
+          <button onclick="startBattle()" class="w-full py-3 rounded-xl bg-blue-600 text-white font-bold text-sm hover:bg-blue-500 transition">
+            进入谈判
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══════════════════════════════════════════════════════════════ -->
+    <!-- PHASE: Battle                                                    -->
+    <!-- ═══════════════════════════════════════════════════════════════ -->
+    <div id="phaseBattle" class="hidden flex-col h-screen">
+      <!-- Top Bar -->
+      <div class="h-16 border-b border-neutral-900 bg-[#050508] flex items-center px-4 gap-3 shrink-0">
+        <div class="flex-1 min-w-0">
+          <div class="flex items-center justify-between mb-1">
+            <span class="text-[10px] text-blue-400 uppercase tracking-wider font-bold">👤 候选人耐心</span>
+            <span id="candPatienceText" class="text-[10px] font-mono text-blue-400">100/100</span>
+          </div>
+          <div class="bar-track">
+            <div id="candPatienceBar" class="bar-fill" style="width:100%; background:linear-gradient(90deg,#1d4ed8,#3b82f6);"></div>
+          </div>
+        </div>
+        <div class="px-3 text-center shrink-0 w-24">
+          <div class="text-[10px] text-neutral-600 uppercase tracking-widest font-bold">Round</div>
+          <div class="text-lg font-mono font-bold text-white">
+            <span id="roundNum">1</span><span class="text-neutral-700">/8</span>
+          </div>
+          <div id="gapDisplay" class="text-[10px] text-amber-400 font-mono mt-0.5 hidden">Gap --k</div>
+        </div>
+        <div class="flex-1 min-w-0">
+          <div class="flex items-center justify-between mb-1">
+            <span id="hrPatienceText" class="text-[10px] font-mono text-rose-400">100/100</span>
+            <span class="text-[10px] text-rose-400 uppercase tracking-wider font-bold">HR 耐心 👔</span>
+          </div>
+          <div class="bar-track">
+            <div id="hrPatienceBar" class="bar-fill" style="width:100%; background:linear-gradient(90deg,#f43f5e,#fb7185);"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Main Battlefield -->
+      <div class="flex-1 flex min-h-0">
+        <!-- LEFT: Candidate -->
+        <div class="w-56 border-r border-neutral-900 bg-[#0a0c10] p-4 flex flex-col gap-3 shrink-0 overflow-y-auto">
+          <div class="flex items-center gap-3">
+            <svg width="40" height="40" viewBox="0 0 100 100" class="rounded-full shrink-0">
+              <circle cx="50" cy="50" r="50" fill="#1e3a5f"/>
+              <circle cx="32" cy="38" r="16" fill="#3b82f6" opacity="0.85"/>
+              <circle cx="68" cy="42" r="13" fill="#60a5fa" opacity="0.65"/>
+              <circle cx="50" cy="72" r="18" fill="#2563eb" opacity="0.75"/>
+            </svg>
+            <div>
+              <div class="text-sm font-bold text-white">张明远</div>
+              <div class="text-[10px] text-neutral-600 uppercase">Candidate</div>
+            </div>
+          </div>
+
+          <div>
+            <div class="text-[10px] text-neutral-700 uppercase tracking-wider font-bold mb-2">简历信号</div>
+            <div id="activeCandHalos" class="space-y-1.5">
+              <!-- Injected by JS -->
+            </div>
+          </div>
+
+          <div class="mt-auto">
+            <div class="text-[10px] text-neutral-700 uppercase tracking-wider font-bold mb-1">HR 对你的倾向</div>
+            <div class="bar-track">
+              <div id="dispositionBar" class="bar-fill" style="width:35%; background:linear-gradient(90deg,#f43f5e,#fb7185);"></div>
+            </div>
+            <div class="text-[10px] text-neutral-600 mt-1 text-right"><span id="dispositionText">35</span>%</div>
+          </div>
+        </div>
+
+        <!-- CENTER: Chat -->
+        <div class="flex-1 flex flex-col min-h-0 relative">
+          <div id="scanLine2" class="scan-line" style="display:none;"></div>
+
+          <div class="absolute top-2 left-0 right-0 flex justify-center gap-6 z-20 pointer-events-none">
+            <div class="text-center">
+              <div id="candidateSalary" class="text-2xl font-black font-mono text-blue-500">--<span class="text-xs text-neutral-700">k</span></div>
+              <div class="text-[9px] text-neutral-700 uppercase tracking-wider">你的期望</div>
+            </div>
+            <div class="vs-zone text-center pt-0.5 w-12">
+              <div class="relative z-10 text-lg font-black text-neutral-800">VS</div>
+            </div>
+            <div class="text-center">
+              <div id="hrSalary" class="text-2xl font-black font-mono text-rose-500">42<span class="text-xs text-neutral-700">k</span></div>
+              <div class="text-[9px] text-neutral-700 uppercase tracking-wider">HR 报价</div>
+            </div>
+          </div>
+
+          <div id="impactLayer" class="absolute inset-0 pointer-events-none z-30 flex items-center justify-center"></div>
+
+          <div id="hrThinking" class="absolute top-14 left-1/2 -translate-x-1/2 z-20 flex items-center gap-2 px-3 py-1.5 rounded-full bg-neutral-900 border border-neutral-800 hidden">
+            <svg width="14" height="14" viewBox="0 0 100 100" class="animate-spin">
+              <circle cx="50" cy="50" r="40" fill="none" stroke="#f43f5e" stroke-width="4" opacity="0.3"/>
+              <path d="M50 10 A40 40 0 0 1 90 50" fill="none" stroke="#f43f5e" stroke-width="4"/>
+            </svg>
+            <span class="text-[10px] text-neutral-500">HR 思考中...</span>
+          </div>
+
+          <div id="chatLog" class="flex-1 overflow-y-auto pt-14 pb-3 px-5 space-y-2"></div>
+        </div>
+
+        <!-- RIGHT: HR -->
+        <div class="w-56 border-l border-neutral-900 bg-[#0a0c10] p-4 flex flex-col gap-3 shrink-0 overflow-y-auto">
+          <div class="flex items-center gap-3 flex-row-reverse">
+            <svg width="40" height="40" viewBox="0 0 100 100" class="rounded-full shrink-0">
+              <circle cx="50" cy="50" r="50" fill="#141414"/>
+              <line x1="50" y1="18" x2="50" y2="82" stroke="#f43f5e" stroke-width="2" opacity="0.5"/>
+              <line x1="18" y1="50" x2="82" y2="50" stroke="#f43f5e" stroke-width="2" opacity="0.5"/>
+              <circle cx="50" cy="50" r="28" fill="none" stroke="#f43f5e" stroke-width="1" opacity="0.3"/>
+              <circle cx="50" cy="50" r="5" fill="#f43f5e"/>
+            </svg>
+            <div class="text-right">
+              <div class="text-sm font-bold text-white">李娜</div>
+              <div class="text-[10px] text-neutral-600 uppercase">HR · 阿里</div>
+            </div>
+          </div>
+
+          <div>
+            <div class="text-[10px] text-neutral-700 uppercase tracking-wider font-bold mb-2 text-right">环境条件</div>
+            <div class="space-y-1.5 text-right">
+              <div class="text-xs text-neutral-400">预算上限 <span class="text-rose-400 font-mono">60k</span></div>
+              <div class="text-xs text-neutral-400">公平线 <span class="text-rose-400 font-mono">48k</span></div>
+              <div class="text-xs text-neutral-400">紧急度 <span class="text-amber-400">高</span></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Bottom Input -->
+      <div class="border-t border-neutral-900 bg-[#050508] shrink-0">
+        <div id="tacticRow" class="px-4 pt-2 pb-1 flex gap-2 overflow-x-auto">
+          <button onclick="useTactic('我手上还有蚂蚁的offer在走流程', 'pressure')" class="tactic-btn shrink-0 px-3 py-1.5 rounded-md bg-neutral-900 border border-neutral-800 text-[11px] text-neutral-400">提及竞品offer</button>
+          <button onclick="useTactic('我主导过双十一核心链路，稳定性99.99%', 'impact')" class="tactic-btn shrink-0 px-3 py-1.5 rounded-md bg-neutral-900 border border-neutral-800 text-[11px] text-neutral-400">强调项目影响力</button>
+          <button onclick="useTactic('如果能给到58k，我下周可以入职', 'urgency')" class="tactic-btn shrink-0 px-3 py-1.5 rounded-md bg-neutral-900 border border-neutral-800 text-[11px] text-neutral-400">承诺快速入职</button>
+          <button onclick="useTactic('我目前总包60万，期望不低于这个数', 'anchor')" class="tactic-btn shrink-0 px-3 py-1.5 rounded-md bg-neutral-900 border border-neutral-800 text-[11px] text-neutral-400">锚定高薪期望</button>
+        </div>
+        <div id="inputArea" class="px-4 pb-3 pt-1 flex items-center gap-2">
+          <input id="msgInput" type="text" placeholder="输入谈判话术..." class="flex-1 bg-neutral-950 border border-neutral-800 rounded-md px-3 py-2 text-sm text-neutral-200 placeholder:text-neutral-700 focus:border-blue-500 focus:outline-none" onkeydown="if(event.key==='Enter')sendMsg()">
+          <button onclick="sendMsg()" class="px-4 py-2 rounded-md bg-blue-600 text-white text-sm font-bold hover:bg-blue-500 transition">出牌</button>
+          <button onclick="acceptOffer()" class="px-3 py-2 rounded-md bg-emerald-900 text-emerald-100 text-sm font-bold hover:bg-emerald-800 transition">接受</button>
+          <button onclick="rejectOffer()" class="px-3 py-2 rounded-md bg-neutral-900 border border-neutral-800 text-neutral-400 text-sm hover:bg-neutral-800 transition">拒绝</button>
+        </div>
+        <div id="resultArea" class="hidden px-4 pb-3 pt-2 flex items-center justify-center gap-4">
+          <span id="resultText" class="text-sm font-bold"></span>
+          <button onclick="location.reload()" class="px-4 py-2 rounded-md bg-neutral-900 border border-neutral-800 text-neutral-400 text-sm hover:bg-neutral-800 transition">重新开始</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+<script>
+// ═══════════════════════════════════════════════════════════════
+// DATA: Candidate signals from resume (NOT choosable — extracted)
+// ═══════════════════════════════════════════════════════════════
+const CANDIDATE_SIGNALS = [
+  { id: 'c9',    label: '🎓 C9 计算机硕士',    hrPatience: 15, disposition: 0.10 },
+  { id: 'byte',  label: '🏢 字节跳动 3年',     hrPatience: 12, disposition: 0.08 },
+  { id: 'project',label: '🚀 双十一核心链路',   hrPatience: 18, disposition: 0.12 },
+  { id: 'acm',   label: '🏆 ACM-ICPC 金牌',    hrPatience: 10, disposition: 0.06 },
+];
+
+const HR_SIGNALS = [
+  { id: 'urgent', label: '⏰ 岗位紧急度: 高',   patience: 20, disposition: 0 },
+  { id: 'budget', label: '💰 预算: 40-60k/月', patience: 0,  disposition: 0 },
+  { id: 'pool',   label: '👥 候选人池: 稀少',   patience: 0,  disposition: 0.15 },
+];
+
+let basePatience = 100;
+let candMaxPatience, hrMaxPatience;
+let candPatience, hrPatience;
+let hrDisposition = 0.30;
+let round = 0, maxRounds = 8;
+let candSalary = null, hrSalary = 42;
+let status = 'negotiating';
+let isHrThinking = false;
+let comboCount = 0, lastTacticType = null;
+
+// ═══════════════════════════════════════════════════════════════
+// PHASE 1: Resume Scan Animation
+// ═══════════════════════════════════════════════════════════════
+function runScanAnimation() {
+  const scanLine = document.getElementById('scanLine');
+  const candBonusEl = document.getElementById('scanningBonus');
+  const hrBonusEl = document.getElementById('hrScanningBonus');
+  const finalStats = document.getElementById('finalStats');
+
+  scanLine.style.display = 'block';
+
+  let candBonus = 0;
+  let hrBonus = 0;
+  let dispBonus = 0;
+
+  // Scan candidate signals one by one — these ADD TO HR PATIENCE (not candidate)
+  let i = 0;
+  function scanNext() {
+    if (i >= CANDIDATE_SIGNALS.length) {
+      // Done with candidate, scan HR
+      scanHRSignals();
+      return;
+    }
+
+    const sig = CANDIDATE_SIGNALS[i];
+    const row = document.querySelector(`[data-signal="${sig.id}"]`);
+    const valueEl = row.querySelector('.signal-value');
+
+    // Highlight
+    row.classList.add('scanned');
+    row.querySelector('span').classList.remove('text-neutral-500');
+    row.querySelector('span').classList.add('text-neutral-200');
+    valueEl.classList.remove('opacity-0');
+    valueEl.classList.add('text-blue-400');
+
+    // Animate number — candidate signals increase HR's patience
+    hrBonus += sig.hrPatience;
+    dispBonus += sig.disposition;
+    animateNumber(candBonusEl, hrBonus);
+
+    i++;
+    setTimeout(scanNext, 600);
+  }
+
+  function scanHRSignals() {
+    let j = 0;
+    function scanNextHR() {
+      if (j >= HR_SIGNALS.length) {
+        // All done
+        scanLine.style.display = 'none';
+        setTimeout(() => {
+          finalStats.classList.remove('hidden');
+          // Set final values
+          candMaxPatience = basePatience; // Candidate patience is fixed
+          hrMaxPatience = basePatience + hrBonus; // HR patience boosted by candidate signals + HR env
+          candPatience = candMaxPatience;
+          hrPatience = hrMaxPatience;
+          hrDisposition = Math.min(1, hrDisposition + dispBonus + 0.15); // +0.15 from pool
+
+          document.getElementById('finalCandPatience').textContent = candMaxPatience;
+          document.getElementById('finalHrPatience').textContent = hrMaxPatience;
+          document.getElementById('finalDisposition').textContent = Math.round(hrDisposition * 100) + '%';
+        }, 400);
+        return;
+      }
+
+      const sig = HR_SIGNALS[j];
+      const row = document.querySelector(`#hrSignalList [data-signal="${sig.id}"]`);
+      const valueEl = row.querySelector('.signal-value');
+
+      row.classList.add('scanned');
+      row.querySelector('span').classList.remove('text-neutral-500');
+      row.querySelector('span').classList.add('text-neutral-200');
+      valueEl.classList.remove('opacity-0');
+      valueEl.classList.add('text-rose-400');
+
+      hrBonus += sig.patience;
+      animateNumber(hrBonusEl, hrBonus);
+
+      j++;
+      setTimeout(scanNextHR, 500);
+    }
+    scanNextHR();
+  }
+
+  scanNext();
+}
+
+function animateNumber(el, target) {
+  let current = parseInt(el.textContent) || 0;
+  const step = Math.ceil((target - current) / 5);
+  function tick() {
+    current += step;
+    if ((step > 0 && current >= target) || (step < 0 && current <= target)) {
+      el.textContent = target;
+      return;
+    }
+    el.textContent = current;
+    requestAnimationFrame(tick);
+  }
+  tick();
+}
+
+// ═══════════════════════════════════════════════════════════════
+// PHASE 2: Battle
+// ═══════════════════════════════════════════════════════════════
+function startBattle() {
+  // Render candidate halos in battle panel
+  const haloContainer = document.getElementById('activeCandHalos');
+  haloContainer.innerHTML = '';
+  for (const sig of CANDIDATE_SIGNALS) {
+    haloContainer.innerHTML += `
+      <div class="flex items-center justify-between text-xs py-1 px-2 rounded bg-blue-500/10 border border-blue-500/20">
+        <span class="text-neutral-400">${sig.label}</span>
+        <span class="text-blue-400 font-mono text-[10px]">HR耐心+${sig.hrPatience}</span>
+      </div>`;
+  }
+
+  document.getElementById('phaseScan').classList.add('hidden');
+  document.getElementById('phaseBattle').classList.remove('hidden');
+  document.getElementById('phaseBattle').classList.add('flex');
+
+  updateBars();
+  updateScore();
+  addMessage('hr', '你好，感谢你来面试。这个岗位预算在40-60k/月，你先说说期望？', null, 42);
+}
+
+function parseTactic(text) {
+  const lower = text.toLowerCase();
+  const patterns = [
+    { type: 'pressure', keywords: ['offer','蚂蚁','腾讯','阿里','字节','竞品','那边'], label: '竞品压力', cost: 8 },
+    { type: 'impact',   keywords: ['主导','核心','稳定性','qps','提升','99.9','性能'], label: '影响力', cost: 6 },
+    { type: 'urgency',  keywords: ['下周','入职','离职','已经','随时','马上'],      label: '快速入职', cost: 5 },
+    { type: 'anchor',   keywords: ['总包','目前','期望','底线','不低于','至少'],    label: '锚定', cost: 7 },
+  ];
+  let best = null, maxScore = 0;
+  for (const p of patterns) {
+    const score = p.keywords.reduce((s, kw) => s + (lower.includes(kw) ? 1 : 0), 0);
+    if (score > maxScore) { maxScore = score; best = p; }
+  }
+  const salaryMatch = text.match(/(\d{2,3})\s*[k千]/i);
+  return { matched: maxScore >= 1, tactic: best, salary: salaryMatch ? parseInt(salaryMatch[1]) : null };
+}
+
+function updateBars() {
+  document.getElementById('candPatienceBar').style.width = (Math.max(0, candPatience) / candMaxPatience * 100) + '%';
+  document.getElementById('candPatienceText').textContent = Math.round(Math.max(0, candPatience)) + '/' + candMaxPatience;
+  document.getElementById('hrPatienceBar').style.width = (Math.max(0, hrPatience) / hrMaxPatience * 100) + '%';
+  document.getElementById('hrPatienceText').textContent = Math.round(Math.max(0, hrPatience)) + '/' + hrMaxPatience;
+  document.getElementById('dispositionBar').style.width = (hrDisposition * 100) + '%';
+  document.getElementById('dispositionText').textContent = Math.round(hrDisposition * 100);
+
+  const cBar = document.getElementById('candPatienceBar');
+  const hBar = document.getElementById('hrPatienceBar');
+  if (candPatience < candMaxPatience * 0.25) cBar.classList.add('danger'); else cBar.classList.remove('danger');
+  if (hrPatience < hrMaxPatience * 0.25) hBar.classList.add('danger'); else hBar.classList.remove('danger');
+}
+
+function updateScore() {
+  document.getElementById('candidateSalary').innerHTML = (candSalary ?? '--') + '<span class="text-xs text-neutral-700">k</span>';
+  document.getElementById('hrSalary').innerHTML = hrSalary + '<span class="text-xs text-neutral-700">k</span>';
+
+  const gap = candSalary ? Math.abs(candSalary - hrSalary) : null;
+  const gEl = document.getElementById('gapDisplay');
+  if (gap !== null && gap > 0 && status === 'negotiating') {
+    gEl.classList.remove('hidden');
+    gEl.textContent = 'Gap ' + gap + 'k';
+  } else {
+    gEl.classList.add('hidden');
+  }
+}
+
+function addMessage(from, text, effects, salary) {
+  const log = document.getElementById('chatLog');
+  const div = document.createElement('div');
+  const isCand = from === 'candidate';
+  div.className = `flex ${isCand ? 'justify-start' : 'justify-end'}`;
+
+  let inner = `<div class="max-w-sm ${isCand ? 'text-left' : 'text-right'}">`;
+  inner += `<div class="msg-${from} inline-block px-3 py-2 rounded-lg text-sm leading-relaxed">${text}`;
+  if (salary) inner += `<span class="ml-1.5 text-xs font-mono font-bold opacity-80">(${salary}k)</span>`;
+  inner += '</div>';
+
+  if (effects?.length) {
+    inner += `<div class="mt-1 space-y-0.5 ${isCand ? 'text-left' : 'text-right'}">`;
+    for (const eff of effects) {
+      inner += `<span class="inline-block text-[10px] px-2 py-0.5 rounded-full bg-neutral-900 border border-neutral-800 text-neutral-500">${eff}</span>`;
+    }
+    inner += '</div>';
+  }
+  inner += '</div>';
+
+  div.innerHTML = inner;
+  log.appendChild(div);
+  log.scrollTop = log.scrollHeight;
+}
+
+function showImpact(text, color) {
+  const layer = document.getElementById('impactLayer');
+  const el = document.createElement('div');
+  el.className = 'impact-text absolute text-3xl';
+  el.style.cssText = `color:${color}; top:45%;`;
+  el.textContent = text;
+  layer.appendChild(el);
+  setTimeout(() => el.remove(), 700);
+}
+
+function screenShake() {
+  document.body.style.animation = 'shake 0.35s ease-in-out';
+  setTimeout(() => document.body.style.animation = '', 350);
+}
+
+function useTactic(text, type) {
+  document.getElementById('msgInput').value = text;
+  lastTacticType = type;
+}
+
+function sendMsg() {
+  const input = document.getElementById('msgInput');
+  const text = input.value.trim();
+  if (!text || isHrThinking || status !== 'negotiating') return;
+  input.value = '';
+
+  const parsed = parseTactic(text);
+  const effects = [];
+  let cost = 5;
+  let salaryMention = parsed.salary;
+
+  if (parsed.matched && parsed.tactic) {
+    cost = parsed.tactic.cost;
+
+    // Synergy: if resume has matching signal, cost reduced
+    let hasSynergy = false;
+    if (parsed.tactic.type === 'impact' && CANDIDATE_SIGNALS.some(s => s.id === 'project')) {
+      cost = Math.max(2, cost - 4);
+      effects.push('🚀 项目光环: 成本-4');
+      hasSynergy = true;
+    }
+    if (parsed.tactic.type === 'pressure' && CANDIDATE_SIGNALS.some(s => s.id === 'byte')) {
+      cost = Math.max(2, cost - 3);
+      effects.push('🏢 大厂背书: 成本-3');
+      hasSynergy = true;
+    }
+    if (parsed.tactic.type === 'anchor' && CANDIDATE_SIGNALS.some(s => s.id === 'c9')) {
+      cost = Math.max(2, cost - 3);
+      effects.push('🎓 学历光环: 成本-3');
+      hasSynergy = true;
+    }
+
+    if (parsed.tactic.type === 'pressure') {
+      hrPatience -= 8;
+      effects.push('HR 耐心 -8');
+    } else if (parsed.tactic.type === 'impact') {
+      hrDisposition = Math.min(1, hrDisposition + 0.12);
+      hrPatience -= 5;
+      effects.push('倾向性 +12%, HR 耐心 -5');
+    } else if (parsed.tactic.type === 'urgency') {
+      hrPatience += 5;
+      effects.push('HR 耐心 +5 (求贤若渴)');
+    } else if (parsed.tactic.type === 'anchor') {
+      hrPatience -= 6;
+      effects.push('HR 耐心 -6');
+    }
+
+    if (hasSynergy) { showImpact('SYNERGY!', '#f59e0b'); screenShake(); }
+    else if (cost <= 3) { showImpact('CRITICAL!', '#f59e0b'); }
+    else { showImpact('HIT!', '#3b82f6'); }
+  }
+
+  candPatience -= cost;
+
+  if (lastTacticType === parsed.tactic?.type) {
+    comboCount++;
+    if (comboCount >= 2) {
+      effects.push(`Combo x${comboCount}! 返还 2 耐心`);
+      candPatience += 2;
+    }
+  } else {
+    comboCount = 1;
+    lastTacticType = parsed.tactic?.type;
+  }
+
+  updateBars();
+  if (salaryMention) candSalary = salaryMention;
+  updateScore();
+  addMessage('candidate', text, effects, salaryMention);
+
+  round++;
+  document.getElementById('roundNum').textContent = round + 1;
+
+  if (candPatience <= 0) {
+    addMessage('candidate', '（你的耐心已耗尽，无法继续谈判...）', null, null);
+    endGame('谈判破裂', false);
+    return;
+  }
+
+  hrRespond(salaryMention);
+}
+
+function hrRespond(userSalary) {
+  isHrThinking = true;
+  document.getElementById('hrThinking').classList.remove('hidden');
+  document.getElementById('scanLine2').style.display = 'block';
+
+  setTimeout(() => {
+    isHrThinking = false;
+    document.getElementById('hrThinking').classList.add('hidden');
+    document.getElementById('scanLine2').style.display = 'none';
+
+    const gap = userSalary ? userSalary - hrSalary : 10;
+    let newHrSalary = hrSalary;
+    let action = 'counter';
+    let responseText = '';
+    let hrCost = 5;
+
+    if (userSalary && Math.abs(gap) <= 3) {
+      newHrSalary = userSalary; action = 'accept';
+      responseText = `好的，${userSalary}k/月可以接受。欢迎加入！`;
+      hrCost = 0;
+    } else if (userSalary && gap > 15) {
+      newHrSalary = Math.round(hrSalary + 2);
+      responseText = `这个差距有点大。我们目前能开到${newHrSalary}k/月。`;
+      hrCost = 3;
+    } else {
+      const concession = Math.round(gap * (0.25 + hrDisposition * 0.35));
+      newHrSalary = Math.min(60, Math.max(hrSalary, hrSalary + concession));
+      hrCost = 5;
+      if (newHrSalary === hrSalary) {
+        responseText = `我们这边确实比较困难。${hrSalary}k/月是目前最好的条件了。`;
+      } else {
+        responseText = `我争取了一下，可以提到${newHrSalary}k/月。这已经是特批了。`;
+      }
+    }
+
+    hrSalary = newHrSalary;
+    hrPatience -= hrCost;
+    updateBars();
+    updateScore();
+
+    if (action === 'accept') {
+      status = 'accepted';
+      endGame('谈判成功！', true);
+    }
+
+    addMessage('hr', responseText, null, newHrSalary);
+
+    if (hrPatience <= 0 && status === 'negotiating') {
+      setTimeout(() => {
+        addMessage('hr', '（HR 的耐心已耗尽，她决定终止谈判）', null, null);
+        endGame('HR 终止谈判', false);
+      }, 500);
+    }
+  }, 1200);
+}
+
+function acceptOffer() {
+  if (isHrThinking || status !== 'negotiating') return;
+  status = 'accepted';
+  addMessage('candidate', `好的，我接受${hrSalary}k/月的offer。`, null, hrSalary);
+  endGame('谈判成功！', true);
+}
+
+function rejectOffer() {
+  if (isHrThinking || status !== 'negotiating') return;
+  status = 'rejected';
+  addMessage('candidate', '抱歉，这个薪资与我的期望差距较大，我考虑其他机会。', null, null);
+  endGame('谈判破裂', false);
+}
+
+function endGame(text, won) {
+  document.getElementById('inputArea').classList.add('hidden');
+  document.getElementById('tacticRow').classList.add('hidden');
+  document.getElementById('resultArea').classList.remove('hidden');
+  document.getElementById('resultText').textContent = text;
+  document.getElementById('resultText').className = 'text-sm font-bold ' + (won ? 'text-emerald-500' : 'text-red-500');
+
+  const layer = document.getElementById('impactLayer');
+  const stamp = document.createElement('div');
+  stamp.className = 'stamp';
+  stamp.style.cssText = `color:${won ? '#10b981' : '#ef4444'}; border-color:${won ? '#10b981' : '#ef4444'}; --r:${won ? '-8deg' : '8deg'};`;
+  stamp.textContent = won ? 'VICTORY' : 'DEFEAT';
+  layer.appendChild(stamp);
+}
+
+// Start scan animation on load
+setTimeout(runScanAnimation, 500);
+</script>
+</body>
+</html>

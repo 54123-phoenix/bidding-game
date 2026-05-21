@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { API_BASE } from "@/lib/api";
 
 export default function SimulationPage() {
   const [file, setFile] = useState<File | null>(null);
@@ -22,11 +23,11 @@ export default function SimulationPage() {
       formData.append("file", file);
       formData.append("source_type", "pdf");
 
-      const uploadResp = await fetch("http://localhost:8001/api/upload", { method: "POST", body: formData });
+      const uploadResp = await fetch(`${API_BASE}/api/upload`, { method: "POST", body: formData });
       const uploadData = await uploadResp.json();
       if (uploadData.status !== "ok") { setError(uploadData.message); setLoading(false); return; }
 
-      const simResp = await fetch("http://localhost:8001/api/simulate", {
+      const simResp = await fetch(`${API_BASE}/api/simulate`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({

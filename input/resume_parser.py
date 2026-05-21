@@ -133,7 +133,7 @@ async def parse_resume(source: bytes | str, source_type: str = "pdf") -> Structu
 
 async def _llm_parse(raw_text: str) -> dict:
     prompt = RESUME_PARSE_PROMPT.replace("{resume_text}", raw_text[:8000])
-    response = await call_llm(prompt, temperature=0.1, max_retries=2)
+    response = await call_llm(prompt, temperature=0.1, max_retries=2, model="qwen-turbo")
     return _safe_json(response)
 
 

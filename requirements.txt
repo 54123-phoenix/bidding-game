@@ -13,3 +13,6 @@ sentence-transformers>=2.7.0
 
 # PDF Parsing
 pymupdf>=1.23.0
+
+# Session Store
+redis>=5.0.0

@@ -11,6 +11,7 @@ const geist = Geist({subsets:['latin'],variable:'--font-sans'});
 
 const NAV_ITEMS = [
   { href: "/", label: "职业博弈模拟", isBrand: true },
+  { href: "/dashboard", label: "投递管理" },
   { href: "/play", label: "开始体验" },
 ];
 

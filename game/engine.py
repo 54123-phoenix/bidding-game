@@ -31,6 +31,7 @@ from game.players.candidate import CandidatePlayer
 from game.players.hr import HRPlayer
 from game.players.interviewer import InterviewerPlayer
 from game.players.market import MarketPlayer
+from game.infowar import InfoWarEngine
 from game.payoff import candidate_payoff, hr_payoff, interviewer_payoff, market_payoff
 from models.schemas import (
     AgentAction,
@@ -66,6 +67,8 @@ class BiddingGameEngine:
         self._persona: Any = None
         self._patience: Any = None
         self._players: dict[str, Any] = {}
+        self._info_engine: InfoWarEngine | None = None
+        self._info_results: list = []
 
     # ── Public API ──────────────────────────────────────────────────────
 
@@ -142,48 +145,59 @@ class BiddingGameEngine:
             },
         )
 
+        # 3.5 Initialize InfoWar engine and deal hand
+        self._info_engine = InfoWarEngine()
+        self._info_engine.deal_hand(state)
+        self._info_results = []
+
         # 4. Run rounds
         for round_num in range(self.max_rounds):
             state.round = round_num
 
-            # 4a. Market emits signals (every round)
-            market_action = await market.act(state, market.get_private_view(state, "market"))
-            state.action_history.append(market_action)
-
-            # Apply market signals to state
-            self._apply_market_signal(state, market_action)
-
-            # 4b. Interviewer evaluates (round 0 only)
+            # 4a+4b. Market emits signals + Interviewer evaluates (round 0)
+            # These two are independent — run in parallel to cut latency
             if round_num == 0:
-                interviewer_action = await interviewer.act(
-                    state, interviewer.get_private_view(state, "interviewer")
+                market_action, interviewer_action = await asyncio.gather(
+                    market.act(state, market.get_private_view(state, "market")),
+                    interviewer.act(state, interviewer.get_private_view(state, "interviewer")),
                 )
+                state.action_history.append(market_action)
+                self._apply_market_signal(state, market_action)
                 state.action_history.append(interviewer_action)
                 state.scores = interviewer_action.params.get("sub_scores", {})
+            else:
+                market_action = await market.act(state, market.get_private_view(state, "market"))
+                state.action_history.append(market_action)
+                self._apply_market_signal(state, market_action)
 
-            # 4c. Candidate acts
+            # 4c. InfoWar phase (NEW v3.0)
+            if state.info_war_enabled and self._info_engine:
+                info_result = self._info_engine.run_phase(state)
+                self._info_results.append(info_result)
+
+            # 4d. Candidate acts (salary negotiation)
             candidate_action = await candidate.act(
                 state, candidate.get_private_view(state, "candidate")
             )
             state.action_history.append(candidate_action)
 
-            # 4d. HR responds
+            # 4e. HR responds
             hr_action = await hr.act(state, hr.get_private_view(state, "hr"))
             state.action_history.append(hr_action)
 
-            # 4e. Resolve round
+            # 4f. Resolve round
             self._resolve_round(state, candidate_action, hr_action)
 
-            # 4f. Update beliefs
+            # 4g. Update beliefs
             self._update_all_beliefs(state, candidate_action, hr_action, market_action)
 
-            # 4g. Update patience
+            # 4h. Update patience
             self._update_patience(state, candidate_action, hr_action, resume, market_condition)
 
-            # 4h. Snapshot
+            # 4i. Snapshot
             state.round_snapshots.append(self._snapshot(state))
 
-            # 4i. Check termination
+            # 4j. Check termination
             if self._check_termination(state):
                 break
 
@@ -196,6 +210,12 @@ class BiddingGameEngine:
             "avatar_expression": self._persona.avatar_expression,
             "avatar_color": self._persona.avatar_color,
         }
+
+        # 5.5 Attach InfoWar results
+        if self._info_results:
+            result.info_war_summary = self._info_results[-1]
+            result.trust_final = state.trust_state
+
         return result
 
     # ── Belief update ──────────────────────────────────────────────────
@@ -613,6 +633,10 @@ class BiddingGameEngine:
         # Compute payoffs
         result.candidate_payoff = candidate_payoff(result, state.candidate_type)
         result.hr_payoff = hr_payoff(result, state.hr_type)
+
+        # Generate parallel universes
+        from counterfactual.universes import generate_parallel_universes
+        result.parallel_universes = generate_parallel_universes(result, state)
 
         return result
 

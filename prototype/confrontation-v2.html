@@ -1,0 +1,705 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>谈判对峙 v2 — 效果展示</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    /* ── Base ── */
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: #000;
+      color: #e8e6e0;
+      overflow: hidden;
+      height: 100vh;
+      width: 100vw;
+    }
+
+    /* ── Background Grid ── */
+    .bg-grid {
+      position: fixed; inset: 0;
+      background-image:
+        linear-gradient(rgba(255,255,255,0.02) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255,255,255,0.02) 1px, transparent 1px);
+      background-size: 60px 60px;
+      pointer-events: none;
+    }
+    .bg-glow {
+      position: fixed; inset: 0;
+      background:
+        radial-gradient(circle at 20% 50%, rgba(59,130,246,0.08) 0%, transparent 40%),
+        radial-gradient(circle at 80% 50%, rgba(244,63,94,0.08) 0%, transparent 40%);
+      pointer-events: none;
+    }
+
+    /* ── Keyframes ── */
+    @keyframes scanLine {
+      0% { top: 0; opacity: 0; }
+      10% { opacity: 1; }
+      90% { opacity: 1; }
+      100% { top: 100%; opacity: 0; }
+    }
+    @keyframes pulse-glow {
+      0%, 100% { box-shadow: 0 0 20px currentColor; }
+      50% { box-shadow: 0 0 40px currentColor, 0 0 60px currentColor; }
+    }
+    @keyframes shake {
+      0%, 100% { transform: translateX(0); }
+      20% { transform: translateX(-3px); }
+      40% { transform: translateX(3px); }
+      60% { transform: translateX(-2px); }
+      80% { transform: translateX(2px); }
+    }
+    @keyframes slideInLeft {
+      from { opacity: 0; transform: translateX(-60px) scale(0.9); }
+      to { opacity: 1; transform: translateX(0) scale(1); }
+    }
+    @keyframes slideInRight {
+      from { opacity: 0; transform: translateX(60px) scale(0.9); }
+      to { opacity: 1; transform: translateX(0) scale(1); }
+    }
+    @keyframes impactPop {
+      0% { transform: scale(2); opacity: 0; }
+      50% { transform: scale(1.1); opacity: 1; }
+      100% { transform: scale(1); opacity: 1; }
+    }
+    @keyframes stampIn {
+      0% { transform: scale(3) rotate(var(--r, -12deg)); opacity: 0; }
+      100% { transform: scale(1) rotate(var(--r, -12deg)); opacity: 0.95; }
+    }
+    @keyframes floatParticle {
+      0% { transform: translate(0,0) scale(1); opacity: 1; }
+      100% { transform: translate(var(--tx), var(--ty)) scale(0); opacity: 0; }
+    }
+    @keyframes clashPulse {
+      0%, 100% { transform: translate(-50%,-50%) scale(1); opacity: 0.3; }
+      50% { transform: translate(-50%,-50%) scale(1.8); opacity: 0.6; }
+    }
+    @keyframes roundEntrance {
+      0% { transform: scale(0) translateY(50px); opacity: 0; }
+      60% { transform: scale(1.1) translateY(-10px); opacity: 1; }
+      100% { transform: scale(1) translateY(0); opacity: 1; }
+    }
+    @keyframes fightFlash {
+      0% { opacity: 1; transform: scale(1); }
+      50% { opacity: 0.3; transform: scale(1.05); }
+      100% { opacity: 0; transform: scale(1.2); }
+    }
+    @keyframes barShine {
+      0% { transform: translateX(-100%); }
+      100% { transform: translateX(200%); }
+    }
+    @keyframes breathe {
+      0%, 100% { opacity: 0.4; }
+      50% { opacity: 1; }
+    }
+    @keyframes comboBounce {
+      0% { transform: scale(0) rotate(-10deg); }
+      60% { transform: scale(1.2) rotate(5deg); }
+      100% { transform: scale(1) rotate(0deg); }
+    }
+    @keyframes ticker {
+      from { transform: translateY(100%); opacity: 0; }
+      to { transform: translateY(0); opacity: 1; }
+    }
+
+    /* ── Components ── */
+    .panel {
+      background: rgba(14, 18, 25, 0.85);
+      border: 1px solid rgba(42, 53, 72, 0.6);
+      backdrop-filter: blur(12px);
+    }
+    .bar-track {
+      height: 6px;
+      background: #0a0e14;
+      border-radius: 3px;
+      overflow: hidden;
+      border: 1px solid #1c2536;
+    }
+    .bar-fill {
+      height: 100%;
+      border-radius: 3px;
+      transition: width 0.8s cubic-bezier(0.34, 1.56, 0.64, 1);
+      position: relative;
+      overflow: hidden;
+    }
+    .bar-fill::after {
+      content: '';
+      position: absolute;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background: linear-gradient(90deg, transparent, rgba(255,255,255,0.15), transparent);
+      animation: barShine 2.5s infinite;
+    }
+    .bar-fill.critical {
+      animation: pulse-glow 1s infinite;
+      color: #ef4444;
+    }
+
+    .msg-candidate {
+      animation: slideInLeft 0.35s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+      border-left: 2px solid #3b82f6;
+      background: rgba(59, 130, 246, 0.08);
+    }
+    .msg-hr {
+      animation: slideInRight 0.35s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+      border-right: 2px solid #f43f5e;
+      background: rgba(244, 63, 94, 0.08);
+    }
+
+    .impact-text {
+      animation: impactPop 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+      text-shadow: 0 0 20px currentColor;
+    }
+    .stamp {
+      animation: stampIn 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+      border: 3px solid;
+      padding: 8px 24px;
+      font-weight: 900;
+      letter-spacing: 0.15em;
+      text-transform: uppercase;
+      border-radius: 4px;
+    }
+
+    .round-banner {
+      animation: roundEntrance 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+    }
+    .fight-flash {
+      animation: fightFlash 0.8s ease-out forwards;
+    }
+
+    .tactic-card {
+      transition: all 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+      cursor: pointer;
+    }
+    .tactic-card:hover {
+      transform: translateY(-3px) scale(1.02);
+      border-color: rgba(34, 211, 238, 0.4);
+      box-shadow: 0 8px 32px rgba(34, 211, 238, 0.1);
+    }
+    .tactic-card:active {
+      transform: scale(0.97);
+    }
+
+    .combo-badge {
+      animation: comboBounce 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+    }
+
+    .vs-clash {
+      position: relative;
+    }
+    .vs-clash::before {
+      content: '';
+      position: absolute;
+      top: 50%; left: 50%;
+      transform: translate(-50%, -50%);
+      width: 80px; height: 80px;
+      border-radius: 50%;
+      background: radial-gradient(circle, rgba(239,68,68,0.2) 0%, transparent 70%);
+      animation: clashPulse 2s ease-in-out infinite;
+    }
+
+    .scan-overlay {
+      position: absolute;
+      left: 0; right: 0;
+      height: 2px;
+      background: linear-gradient(90deg, transparent, rgba(34,211,238,0.6), transparent);
+      animation: scanLine 2.5s ease-in-out infinite;
+      pointer-events: none;
+      z-index: 50;
+    }
+
+    .particle {
+      position: absolute;
+      width: 3px; height: 3px;
+      border-radius: 50%;
+      pointer-events: none;
+    }
+
+    .hidden-msg { opacity: 0; transform: translateY(10px); }
+    .show-msg { opacity: 1; transform: translateY(0); transition: all 0.3s ease; }
+
+    /* Scrollbar */
+    ::-webkit-scrollbar { width: 4px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: #2a3548; border-radius: 2px; }
+  </style>
+</head>
+<body>
+  <div class="bg-grid"></div>
+  <div class="bg-glow"></div>
+
+  <div id="app" class="relative z-10 h-screen flex flex-col">
+    <!-- ═══════════════════════════════════════════════════════════ -->
+    <!-- TOP BAR: 耐心条对峙                                          -->
+    <!-- ═══════════════════════════════════════════════════════════ -->
+    <div class="h-14 border-b border-neutral-900 bg-black flex items-center px-4 gap-4 shrink-0">
+      <!-- Candidate patience -->
+      <div class="flex-1 min-w-0">
+        <div class="flex items-center justify-between mb-1">
+          <span class="text-[10px] text-neutral-500 uppercase tracking-wider">YOU</span>
+          <span id="candPatienceText" class="text-[10px] font-mono text-blue-400">100%</span>
+        </div>
+        <div class="bar-track">
+          <div id="candPatienceBar" class="bar-fill" style="width:100%; background:linear-gradient(90deg,#2563eb,#3b82f6);"></div>
+        </div>
+      </div>
+
+      <!-- Round counter -->
+      <div class="px-3 text-center shrink-0">
+        <div class="text-[10px] text-neutral-600 uppercase tracking-widest font-bold">Round</div>
+        <div class="text-sm font-mono font-bold text-neutral-300"><span id="roundNum">1</span> / 8</div>
+      </div>
+
+      <!-- HR patience -->
+      <div class="flex-1 min-w-0">
+        <div class="flex items-center justify-between mb-1">
+          <span id="hrPatienceText" class="text-[10px] font-mono text-rose-400">60%</span>
+          <span class="text-[10px] text-neutral-500 uppercase tracking-wider">HR</span>
+        </div>
+        <div class="bar-track">
+          <div id="hrPatienceBar" class="bar-fill" style="width:60%; background:linear-gradient(90deg,#f43f5e,#fb7185);"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══════════════════════════════════════════════════════════ -->
+    <!-- MAIN BATTLEFIELD                                             -->
+    <!-- ═══════════════════════════════════════════════════════════ -->
+    <div class="flex-1 flex min-h-0">
+
+      <!-- LEFT: Candidate -->
+      <div class="w-56 border-r border-neutral-900 bg-neutral-950/50 p-4 flex flex-col gap-4 shrink-0">
+        <div class="flex items-center gap-3">
+          <svg width="44" height="44" viewBox="0 0 100 100" class="rounded-full shrink-0">
+            <circle cx="50" cy="50" r="50" fill="#1e3a5f"/>
+            <circle cx="32" cy="38" r="16" fill="#3b82f6" opacity="0.85"/>
+            <circle cx="68" cy="42" r="13" fill="#60a5fa" opacity="0.65"/>
+            <circle cx="50" cy="72" r="18" fill="#2563eb" opacity="0.75"/>
+          </svg>
+          <div>
+            <div class="text-sm font-bold text-neutral-200">张明远</div>
+            <div class="text-[10px] text-neutral-600 uppercase tracking-wider">Candidate</div>
+          </div>
+        </div>
+
+        <!-- Signals -->
+        <div class="space-y-2">
+          <div class="text-[10px] uppercase tracking-widest text-neutral-700 font-bold">Signals</div>
+          <div class="flex justify-between text-xs border-b border-neutral-900 pb-1">
+            <span class="text-neutral-500">C9 计算机硕士</span><span class="text-blue-400 font-mono text-[10px]">+8%</span>
+          </div>
+          <div class="flex justify-between text-xs border-b border-neutral-900 pb-1">
+            <span class="text-neutral-500">字节跳动 3年</span><span class="text-blue-400 font-mono text-[10px]">+10%</span>
+          </div>
+          <div class="flex justify-between text-xs border-b border-neutral-900 pb-1">
+            <span class="text-neutral-500">Go / K8s</span><span class="text-blue-400 font-mono text-[10px]">+6%</span>
+          </div>
+        </div>
+
+        <!-- HR Disposition -->
+        <div class="mt-auto">
+          <div class="text-[10px] uppercase tracking-widest text-neutral-700 font-bold mb-1">HR 倾向性</div>
+          <div class="bar-track">
+            <div id="dispositionBar" class="bar-fill" style="width:30%; background:linear-gradient(90deg,#f43f5e,#fb7185);"></div>
+          </div>
+          <div class="text-[10px] text-neutral-600 mt-1 text-right"><span id="dispositionText">30</span>%</div>
+        </div>
+      </div>
+
+      <!-- CENTER: Chat + Score -->
+      <div class="flex-1 flex flex-col min-h-0 relative">
+        <!-- Scan line (decorative) -->
+        <div id="scanLine" class="scan-overlay" style="display:none;"></div>
+
+        <!-- Score overlay -->
+        <div class="absolute top-3 left-0 right-0 flex justify-center gap-8 z-20 pointer-events-none">
+          <div class="text-center">
+            <div id="candidateSalary" class="text-3xl font-black font-mono text-blue-500 tabular-nums">--<span class="text-sm text-neutral-600">k</span></div>
+            <div class="text-[10px] uppercase tracking-widest text-neutral-700 font-bold mt-0.5">Your Ask</div>
+          </div>
+          <div class="vs-clash text-center pt-1">
+            <div id="vsBadge" class="relative z-10 text-xl font-black text-neutral-700">VS</div>
+            <div id="gapBadge" class="text-[10px] font-mono font-bold px-2 py-0.5 rounded-full border border-neutral-800 text-neutral-500 bg-neutral-900 mt-1 hidden">Gap --k</div>
+          </div>
+          <div class="text-center">
+            <div id="hrSalary" class="text-3xl font-black font-mono text-rose-500 tabular-nums">42<span class="text-sm text-neutral-600">k</span></div>
+            <div class="text-[10px] uppercase tracking-widest text-neutral-700 font-bold mt-0.5">HR Offer</div>
+          </div>
+        </div>
+
+        <!-- Impact effects layer -->
+        <div id="impactLayer" class="absolute inset-0 pointer-events-none z-30 flex items-center justify-center"></div>
+
+        <!-- HR Thinking indicator -->
+        <div id="hrThinking" class="absolute top-16 left-1/2 -translate-x-1/2 z-20 flex items-center gap-2 px-3 py-1.5 rounded-full bg-neutral-900 border border-neutral-800 hidden">
+          <svg width="16" height="16" viewBox="0 0 100 100" class="animate-spin">
+            <circle cx="50" cy="50" r="45" fill="none" stroke="#f43f5e" stroke-width="3" opacity="0.3"/>
+            <path d="M50 5 A45 45 0 0 1 95 50" fill="none" stroke="#f43f5e" stroke-width="3"/>
+          </svg>
+          <span class="text-[10px] text-neutral-500 uppercase tracking-wider">HR 思考中</span>
+        </div>
+
+        <!-- Chat log -->
+        <div id="chatLog" class="flex-1 overflow-y-auto pt-20 pb-4 px-5 space-y-2"></div>
+      </div>
+
+      <!-- RIGHT: HR -->
+      <div class="w-56 border-l border-neutral-900 bg-neutral-950/50 p-4 flex flex-col gap-4 shrink-0">
+        <div class="flex items-center gap-3 flex-row-reverse">
+          <svg width="44" height="44" viewBox="0 0 100 100" class="rounded-full shrink-0">
+            <circle cx="50" cy="50" r="50" fill="#141414"/>
+            <line x1="50" y1="18" x2="50" y2="82" stroke="#f43f5e" stroke-width="2.5" opacity="0.5"/>
+            <line x1="18" y1="50" x2="82" y2="50" stroke="#f43f5e" stroke-width="2.5" opacity="0.5"/>
+            <circle cx="50" cy="50" r="32" fill="none" stroke="#f43f5e" stroke-width="1.5" opacity="0.35"/>
+            <circle cx="50" cy="50" r="22" fill="none" stroke="#f43f5e" stroke-width="1" opacity="0.25"/>
+            <circle cx="50" cy="50" r="5" fill="#f43f5e"/>
+          </svg>
+          <div class="text-right">
+            <div class="text-sm font-bold text-neutral-200">HR 李娜</div>
+            <div class="text-[10px] text-neutral-600 uppercase tracking-wider">Recruiter</div>
+          </div>
+        </div>
+
+        <div class="space-y-2">
+          <div class="text-[10px] uppercase tracking-widest text-neutral-700 font-bold text-right">Constraints</div>
+          <div class="text-right border-b border-neutral-900 pb-1">
+            <div class="text-xs text-neutral-400 font-medium">预算上限 60k</div>
+            <div class="text-[10px] text-neutral-600">硬性约束</div>
+          </div>
+          <div class="text-right border-b border-neutral-900 pb-1">
+            <div class="text-xs text-neutral-400 font-medium">紧急度: 高</div>
+            <div class="text-[10px] text-neutral-600">耐心消耗 ×1.5</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══════════════════════════════════════════════════════════ -->
+    <!-- BOTTOM: Input Area                                           -->
+    <!-- ═══════════════════════════════════════════════════════════ -->
+    <div class="border-t border-neutral-900 bg-black shrink-0">
+      <!-- Quick tactics -->
+      <div id="tacticRow" class="px-4 pt-2 pb-1 flex gap-2 overflow-x-auto">
+        <button onclick="useTactic('我手上还有蚂蚁的offer在走流程')" class="tactic-card shrink-0 px-3 py-1.5 rounded-md bg-neutral-900 border border-neutral-800 text-[11px] text-neutral-400">提及竞品offer</button>
+        <button onclick="useTactic('我主导过双十一核心链路')" class="tactic-card shrink-0 px-3 py-1.5 rounded-md bg-neutral-900 border border-neutral-800 text-[11px] text-neutral-400">强调项目影响力</button>
+        <button onclick="useTactic('如果能给到58k，我下周可以入职')" class="tactic-card shrink-0 px-3 py-1.5 rounded-md bg-neutral-900 border border-neutral-800 text-[11px] text-neutral-400">承诺快速入职</button>
+        <button onclick="useTactic('我目前总包60万，期望不低于这个数')" class="tactic-card shrink-0 px-3 py-1.5 rounded-md bg-neutral-900 border border-neutral-800 text-[11px] text-neutral-400">锚定高薪期望</button>
+      </div>
+
+      <!-- Input -->
+      <div id="inputArea" class="px-4 pb-3 pt-1 flex items-center gap-2">
+        <input id="msgInput" type="text" placeholder="输入谈判话术..." class="flex-1 bg-neutral-950 border border-neutral-800 rounded-md px-3 py-2 text-sm text-neutral-200 placeholder:text-neutral-700 focus:border-blue-500 focus:outline-none" onkeydown="if(event.key==='Enter')sendMsg()">
+        <button onclick="sendMsg()" class="px-4 py-2 rounded-md bg-blue-600 text-white text-sm font-bold hover:bg-blue-500 transition">发送</button>
+        <button onclick="acceptOffer()" class="px-3 py-2 rounded-md bg-emerald-900 text-emerald-100 text-sm font-bold hover:bg-emerald-800 transition">接受</button>
+        <button onclick="rejectOffer()" class="px-3 py-2 rounded-md bg-neutral-900 border border-neutral-800 text-neutral-400 text-sm hover:bg-neutral-800 transition">拒绝</button>
+      </div>
+
+      <!-- Result area (hidden by default) -->
+      <div id="resultArea" class="hidden px-4 pb-3 pt-2 flex items-center justify-center gap-4">
+        <span id="resultText" class="text-sm font-bold"></span>
+        <button onclick="location.reload()" class="px-4 py-2 rounded-md bg-neutral-900 border border-neutral-800 text-neutral-400 text-sm hover:bg-neutral-800 transition">重新开始</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════════════════════════ -->
+  <!-- JAVASCRIPT                                                      -->
+  <!-- ═══════════════════════════════════════════════════════════════ -->
+  <script>
+    // State
+    let round = 0, maxRounds = 8;
+    let candPatience = 1.0, hrPatience = 0.6, hrDisposition = 0.3;
+    let candSalary = null, hrSalary = 42;
+    let status = 'negotiating';
+    let hrThinking = false;
+    let comboCount = 0, lastTacticType = null;
+
+    const TACTICS = [
+      { keywords: ['offer','蚂蚁','腾讯','阿里','字节','竞品','那边'], type: 'pressure', effect: { disposition: 0.15, label: '竞品压力 → 倾向性↑' } },
+      { keywords: ['主导','核心','稳定性','QPS','提升','99.9','性能','优化'], type: 'impact', effect: { disposition: 0.10, label: '高影响力 → 倾向性↑' } },
+      { keywords: ['下周','入职','离职','已经','随时','马上'], type: 'urgency', effect: { hrPatience: 0.10, label: '快速入职 → 耐心↑' } },
+      { keywords: ['总包','目前','期望','底线','不低于','至少'], type: 'anchor', effect: { salaryPressure: 5, label: '锚定效应 → 报价压力↑' } },
+    ];
+
+    function parseTactic(text) {
+      const lower = text.toLowerCase();
+      let best = null, maxScore = 0;
+      for (const t of TACTICS) {
+        const score = t.keywords.reduce((s, kw) => s + (lower.includes(kw.toLowerCase()) ? 1 : 0), 0);
+        if (score > maxScore) { maxScore = score; best = t; }
+      }
+      const salaryMatch = text.match(/(\d{2,3})\s*[k千]/i);
+      return { matched: maxScore >= 1, tactic: best, salary: salaryMatch ? parseInt(salaryMatch[1]) : null };
+    }
+
+    function spawnParticles(x, y, color, count = 8) {
+      const layer = document.getElementById('impactLayer');
+      for (let i = 0; i < count; i++) {
+        const p = document.createElement('div');
+        p.className = 'particle';
+        p.style.cssText = `left:${x}px; top:${y}px; background:${color};`;
+        const angle = (Math.PI * 2 * i) / count;
+        const dist = 40 + Math.random() * 30;
+        p.style.setProperty('--tx', Math.cos(angle) * dist + 'px');
+        p.style.setProperty('--ty', Math.sin(angle) * dist + 'px');
+        p.style.animation = `floatParticle 0.6s ease-out forwards`;
+        layer.appendChild(p);
+        setTimeout(() => p.remove(), 600);
+      }
+    }
+
+    function showImpact(text, color) {
+      const layer = document.getElementById('impactLayer');
+      const el = document.createElement('div');
+      el.className = 'impact-text absolute text-2xl font-black tracking-wider';
+      el.style.cssText = `color:${color}; top:40%;`;
+      el.textContent = text;
+      layer.appendChild(el);
+      setTimeout(() => el.remove(), 800);
+    }
+
+    function showCombo() {
+      comboCount++;
+      if (comboCount < 2) return;
+      const layer = document.getElementById('impactLayer');
+      const el = document.createElement('div');
+      el.className = 'combo-badge absolute px-4 py-2 rounded-full text-white font-bold text-lg';
+      el.style.cssText = 'background:linear-gradient(135deg,#f59e0b,#ef4444); box-shadow:0 0 20px rgba(245,158,11,0.4); top:25%;';
+      el.textContent = `COMBO x${comboCount}!`;
+      layer.appendChild(el);
+      setTimeout(() => el.remove(), 1200);
+    }
+
+    function screenShake() {
+      document.body.style.animation = 'shake 0.4s ease-in-out';
+      setTimeout(() => document.body.style.animation = '', 400);
+    }
+
+    function updateBars() {
+      document.getElementById('candPatienceBar').style.width = (candPatience * 100) + '%';
+      document.getElementById('candPatienceText').textContent = Math.round(candPatience * 100) + '%';
+      document.getElementById('hrPatienceBar').style.width = (hrPatience * 100) + '%';
+      document.getElementById('hrPatienceText').textContent = Math.round(hrPatience * 100) + '%';
+      document.getElementById('dispositionBar').style.width = (hrDisposition * 100) + '%';
+      document.getElementById('dispositionText').textContent = Math.round(hrDisposition * 100);
+
+      // Critical mode
+      const hrBar = document.getElementById('hrPatienceBar');
+      if (hrPatience < 0.3) hrBar.classList.add('critical');
+      else hrBar.classList.remove('critical');
+    }
+
+    function updateScore() {
+      const cEl = document.getElementById('candidateSalary');
+      const hEl = document.getElementById('hrSalary');
+      const gEl = document.getElementById('gapBadge');
+
+      cEl.innerHTML = (candSalary ?? '--') + '<span class="text-sm text-neutral-600">k</span>';
+      hEl.innerHTML = (hrSalary ?? '--') + '<span class="text-sm text-neutral-600">k</span>';
+
+      const gap = candSalary && hrSalary ? Math.abs(candSalary - hrSalary) : null;
+      if (gap !== null && gap > 0 && status === 'negotiating') {
+        gEl.classList.remove('hidden');
+        gEl.textContent = 'Gap ' + gap + 'k';
+      } else {
+        gEl.classList.add('hidden');
+      }
+    }
+
+    function addMessage(from, text, effects, salary) {
+      const log = document.getElementById('chatLog');
+      const div = document.createElement('div');
+      const isCand = from === 'candidate';
+      div.className = `flex ${isCand ? 'justify-start' : 'justify-end'}`;
+
+      let inner = `<div class="max-w-md ${isCand ? 'text-left' : 'text-right'}">`;
+      inner += `<div class="msg-${from} inline-block px-3 py-2 rounded-lg text-sm leading-relaxed">`;
+      inner += text;
+      if (salary) inner += `<span class="ml-1.5 text-xs font-mono font-bold opacity-80">(${salary}k)</span>`;
+      inner += '</div>';
+
+      if (effects && effects.length > 0) {
+        inner += `<div class="mt-1 space-y-0.5 ${isCand ? 'text-left' : 'text-right'}">`;
+        for (const eff of effects) {
+          inner += `<span class="inline-block text-[10px] px-2 py-0.5 rounded-full bg-neutral-900 border border-neutral-800 text-neutral-500">${eff}</span>`;
+        }
+        inner += '</div>';
+      }
+      inner += '</div>';
+
+      div.innerHTML = inner;
+      log.appendChild(div);
+      log.scrollTop = log.scrollHeight;
+    }
+
+    function useTactic(text) {
+      document.getElementById('msgInput').value = text;
+    }
+
+    function showRoundBanner() {
+      const layer = document.getElementById('impactLayer');
+      const banner = document.createElement('div');
+      banner.className = 'round-banner absolute flex flex-col items-center justify-center';
+      banner.style.cssText = 'top:30%; left:50%; transform:translateX(-50%); z-index:100;';
+      banner.innerHTML = `
+        <div class="text-6xl font-black text-transparent bg-clip-text bg-gradient-to-r from-blue-500 via-white to-rose-500" style="text-shadow:0 0 60px rgba(255,255,255,0.1);">ROUND ${round + 1}</div>
+        <div class="fight-flash mt-2 text-2xl font-black text-amber-400 tracking-widest">FIGHT!</div>
+      `;
+      layer.appendChild(banner);
+      setTimeout(() => banner.remove(), 1500);
+    }
+
+    function showResultStamp(won) {
+      const layer = document.getElementById('impactLayer');
+      const stamp = document.createElement('div');
+      stamp.className = 'stamp';
+      stamp.style.setProperty('--r', won ? '-12deg' : '12deg');
+      stamp.style.cssText += won
+        ? 'color:#10b981; border-color:#10b981; --r:-12deg;'
+        : 'color:#ef4444; border-color:#ef4444; --r:12deg;';
+      stamp.textContent = won ? 'VICTORY' : 'DEFEAT';
+      layer.appendChild(stamp);
+    }
+
+    function sendMsg() {
+      const input = document.getElementById('msgInput');
+      const text = input.value.trim();
+      if (!text || hrThinking || status !== 'negotiating') return;
+      input.value = '';
+
+      // Parse
+      const parsed = parseTactic(text);
+      const effects = [];
+      let salaryMention = parsed.salary;
+
+      if (parsed.matched && parsed.tactic) {
+        const eff = parsed.tactic.effect;
+        if (eff.disposition) { hrDisposition = Math.min(1, hrDisposition + eff.disposition); }
+        if (eff.hrPatience) { hrPatience = Math.min(1, hrPatience + eff.hrPatience); }
+        effects.push(eff.label);
+
+        // Combo logic
+        if (lastTacticType === parsed.tactic.type) {
+          showCombo();
+        } else {
+          comboCount = 1;
+        }
+        lastTacticType = parsed.tactic.type;
+
+        // Impact effect
+        if (eff.disposition && eff.disposition >= 0.15) {
+          showImpact('CRITICAL!', '#f59e0b');
+          screenShake();
+        } else {
+          showImpact('HIT!', '#3b82f6');
+        }
+      }
+
+      candPatience = Math.max(0, candPatience - 0.05);
+      updateBars();
+
+      if (salaryMention) candSalary = salaryMention;
+      updateScore();
+
+      addMessage('candidate', text, effects, salaryMention);
+
+      // Particles from center
+      const rect = document.getElementById('chatLog').getBoundingClientRect();
+      spawnParticles(rect.width / 2, rect.height / 2, '#3b82f6', 12);
+
+      round++;
+      document.getElementById('roundNum').textContent = round + 1;
+
+      // Show round banner on new round
+      if (round < maxRounds) {
+        setTimeout(() => showRoundBanner(), 300);
+      }
+
+      // HR respond
+      hrRespond(salaryMention);
+    }
+
+    function hrRespond(userSalary) {
+      hrThinking = true;
+      document.getElementById('hrThinking').classList.remove('hidden');
+      document.getElementById('scanLine').style.display = 'block';
+
+      setTimeout(() => {
+        hrThinking = false;
+        document.getElementById('hrThinking').classList.add('hidden');
+        document.getElementById('scanLine').style.display = 'none';
+
+        const gap = userSalary ? userSalary - hrSalary : 10;
+        let newHrSalary = hrSalary;
+        let action = 'counter';
+        let responseText = '';
+
+        if (userSalary && Math.abs(gap) <= 3) {
+          newHrSalary = userSalary;
+          action = 'accept';
+          responseText = `好的，${userSalary}k/月可以接受。欢迎加入！`;
+        } else if (userSalary && gap > 15) {
+          newHrSalary = Math.round(hrSalary + 2);
+          responseText = `这个差距有点大。我们目前能开到${newHrSalary}k/月。`;
+        } else {
+          const concession = Math.round(gap * (0.3 + hrDisposition * 0.3));
+          newHrSalary = Math.min(60, Math.max(hrSalary, hrSalary + concession));
+          if (newHrSalary === hrSalary) {
+            responseText = `我们这边确实比较困难。${hrSalary}k/月是目前最好的条件了。`;
+          } else {
+            responseText = `我争取了一下，可以提到${newHrSalary}k/月。这已经是特批后的价格了。`;
+          }
+        }
+
+        hrSalary = newHrSalary;
+        hrPatience = Math.max(0, hrPatience - 0.08);
+        updateBars();
+        updateScore();
+
+        if (action === 'accept') {
+          status = 'accepted';
+          showResultStamp(true);
+          endGame('谈判成功！');
+        }
+
+        addMessage('hr', responseText, null, newHrSalary);
+
+        // Particles
+        const rect = document.getElementById('chatLog').getBoundingClientRect();
+        spawnParticles(rect.width / 2, rect.height / 2, '#f43f5e', 8);
+      }, 1400);
+    }
+
+    function acceptOffer() {
+      if (hrThinking || status !== 'negotiating') return;
+      status = 'accepted';
+      addMessage('candidate', `好的，我接受${hrSalary}k/月的offer。`, null, hrSalary);
+      showResultStamp(true);
+      endGame('谈判成功！');
+    }
+
+    function rejectOffer() {
+      if (hrThinking || status !== 'negotiating') return;
+      status = 'rejected';
+      addMessage('candidate', '抱歉，这个薪资与我的期望差距较大，我考虑其他机会。', null, null);
+      showResultStamp(false);
+      endGame('谈判破裂');
+    }
+
+    function endGame(resultText) {
+      document.getElementById('inputArea').classList.add('hidden');
+      document.getElementById('tacticRow').classList.add('hidden');
+      document.getElementById('resultArea').classList.remove('hidden');
+      document.getElementById('resultText').textContent = resultText;
+      document.getElementById('resultText').className = 'text-sm font-bold ' + (status === 'accepted' ? 'text-emerald-500' : 'text-red-500');
+    }
+
+    // Init
+    updateBars();
+    updateScore();
+    addMessage('hr', '你好，感谢你来面试。这个岗位预算在40-60k/月，你先说说期望？', null, 42);
+  </script>
+</body>
+</html>

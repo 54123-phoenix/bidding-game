@@ -76,6 +76,61 @@ class DeliberationResult:
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
+# Deliberation Cache — avoids repeated LLM calls for identical inputs
+# ═══════════════════════════════════════════════════════════════════════════════
+
+_deliberation_cache: dict[tuple, DeliberationResult] = {}
+_MAX_CACHE_SIZE = 200
+
+
+def _cache_key(
+    agent_role: str,
+    state: Any,
+    private_view: dict,
+    persona: Any | None,
+    model: str | None,
+) -> tuple:
+    """Build a hashable cache key from the deliberation inputs.
+
+    Intentionally coarse: same agent, same round, same offer, same budget
+    → same decision. Different resumes or jobs are handled by their levels
+    and salary ranges, not full text.
+    """
+    pv = private_view.get("private") or {}
+    pub = private_view.get("public") or {}
+    return (
+        agent_role,
+        state.round,
+        state.public_offer,
+        state.public_status,
+        getattr(state.job, "level", "") if hasattr(state, "job") else "",
+        getattr(state.job, "company", "") if hasattr(state, "job") else "",
+        getattr(state, "market_adjustment", 1.0),
+        getattr(state, "competition_intensity", 0.5),
+        getattr(persona, "archetype", "") if persona else "",
+        model or "",
+        # Key private-type fields that actually change decisions
+        pv.get("true_budget", 0) if isinstance(pv, dict) else 0,
+        round(pv.get("urgency", 0.5), 2) if isinstance(pv, dict) else 0.5,
+        pv.get("reservation_wage", 0) if isinstance(pv, dict) else 0,
+        pub.get("offer", 0) if isinstance(pub, dict) else 0,
+    )
+
+
+def _get_cached(key: tuple) -> DeliberationResult | None:
+    return _deliberation_cache.get(key)
+
+
+def _set_cached(key: tuple, result: DeliberationResult) -> None:
+    if len(_deliberation_cache) >= _MAX_CACHE_SIZE:
+        # Evict oldest ~25% — simple FIFO via pop of arbitrary key
+        for _ in range(_MAX_CACHE_SIZE // 4):
+            if _deliberation_cache:
+                _deliberation_cache.pop(next(iter(_deliberation_cache)))
+    _deliberation_cache[key] = result
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
 # Top-Level Deliberation Orchestrator
 # ═══════════════════════════════════════════════════════════════════════════════
 
@@ -89,19 +144,28 @@ async def deliberate(
 ) -> DeliberationResult:
     """Run a full two-phase deliberation for the given agent.
 
+    Cached: identical inputs return instantly without LLM round-trip.
     Tries LLM-based deliberation first; falls back to rule-based on failure.
     """
+    key = _cache_key(agent_role, state, private_view, persona, model)
+    cached = _get_cached(key)
+    if cached is not None:
+        return cached
+
     from llm.client import is_llm_available
 
     if is_llm_available():
         try:
             result = await _deliberate_llm(agent_role, state, private_view, persona, model=model)
             if result is not None and result.evaluated_options:
+                _set_cached(key, result)
                 return result
         except Exception:
             pass
 
-    return _deliberate_rules(agent_role, state, private_view, persona)
+    result = _deliberate_rules(agent_role, state, private_view, persona)
+    _set_cached(key, result)
+    return result
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
@@ -116,26 +180,32 @@ async def _deliberate_llm(
     persona: Any | None = None,
     model: str | None = None,
 ) -> DeliberationResult | None:
-    """Two-phase LLM deliberation: analyze first, then decide."""
+    """Single-call LLM deliberation: analyze + decide in one shot.
+
+    Previously two-phase (analyze → decide) with 2 separate LLM calls.
+    Now merged into one call to cut round-trip latency by ~50%.
+    """
     from llm.client import call_llm_chat
 
-    # Phase 1 — Analyze
-    phase1_messages = _build_phase1_prompt(agent_role, state, private_view, persona)
-    phase1_raw = await call_llm_chat(phase1_messages, temperature=0.4, max_retries=2, model=model)
+    messages = _build_phase1_prompt(agent_role, state, private_view, persona)
 
-    if not phase1_raw:
-        return None
+    # Append decision requirement so LLM outputs analysis + final decision in one go
+    decision_instruction = (
+        "\n\n在完成上述分析后，你必须在输出末尾附加一个最终决策（JSON格式，不要markdown代码块）：\n"
+        '{"action": "accept|counter_offer|offer|reject|signal", '
+        '"salary_amount": <int or null>, '
+        '"reasoning": "<基于分析选择最优行动的理由>", '
+        '"confidence": <0.0-1.0>}'
+    )
+    messages[0]["content"] += decision_instruction
 
-    # Phase 2 — Decide (with Phase 1 analysis in context)
-    phase2_messages = _build_phase2_prompt(agent_role, phase1_raw, state, private_view)
-    phase2_raw = await call_llm_chat(phase2_messages, temperature=0.2, max_retries=1, model=model)
-
-    if not phase2_raw:
+    raw = await call_llm_chat(messages, temperature=0.3, max_retries=2, model=model)
+    if not raw:
         return None
 
     # Parse structured output
-    options_data = _extract_options_from_text(phase1_raw)
-    decision_data = _parse_json_response(phase2_raw)
+    options_data = _extract_options_from_text(raw)
+    decision_data = _parse_json_response(raw)
 
     if not options_data:
         return None
@@ -179,8 +249,8 @@ async def _deliberate_llm(
                 selected_index = i
                 break
 
-    # Extract situation assessment from Phase 1 text (first 3 paragraphs)
-    paragraphs = [p.strip() for p in phase1_raw.split("\n\n") if p.strip()]
+    # Extract situation assessment from raw text (first 3 paragraphs)
+    paragraphs = [p.strip() for p in raw.split("\n\n") if p.strip()]
     situation = paragraphs[0] if paragraphs else ""
     beliefs_part = paragraphs[1] if len(paragraphs) > 1 else ""
 
@@ -598,13 +668,7 @@ def _candidate_phase1(state: Any, private_view: dict) -> list[dict[str, str]]:
 
     system_content = (
         "你正在参加一场真实的薪资谈判。你要扮演一个真实的候选人——有野心、有顾虑、会算计。\n"
-        "请逐步完成以下分析。不要急于做决定，你的任务只是分析，不是决策。\n\n"
-        "关键原则：\n"
-        "1. 逐步思考。不要跳过任何步骤。\n"
-        "2. 不要急于做决定。你的任务只是分析。\n"
-        "3. 从多个角度考虑问题。即使某个选项看起来明显最优，也要认真分析其他选项。\n"
-        "4. 你的信念可能不准确。不要完全相信你的信念，保持怀疑。\n"
-        "5. 用中文输出。分析要具体，引用数字和事实，不要泛泛而谈。\n\n"
+        "关键原则：逐步思考，从多个角度考虑，保持怀疑，用中文输出。\n\n"
         "在分析的最后，用 <OPTIONS> 标签包裹结构化的选项列表（JSON数组格式）。\n"
         '每个选项格式：{"action": "counter_offer", "salary_amount": 78, "label": "要价78K", '
         '"expected_utility": 0.7, "risk_level": "medium", '
@@ -616,64 +680,45 @@ def _candidate_phase1(state: Any, private_view: dict) -> list[dict[str, str]]:
 
     user_content = f"""## 你是谁
 - 真实能力：{true_ability:.0%}（只有你自己知道）
-- 薪资底线：{reservation_wage}K/年（低于这个你不会接受）
-- 外部机会：{json.dumps(outside_options, ensure_ascii=False) if outside_options else '无其他offer'}
-- 职业偏好：{career_ambition:.0%}（1.0=极度看重成长和晋升，0.0=只看当前薪资）
+- 薪资底线：{reservation_wage}K/年
+- 外部机会：{json.dumps(outside_options, ensure_ascii=False) if outside_options else '无'}
+- 职业偏好：{career_ambition:.0%}（1.0=看重成长，0.0=只看薪资）
 - 经验年限：{total_years:.0f}年
 
-## 对面的HR（你只能猜测她的情况）
-根据她的行为，你对她的信念分布是：
-- 高预算+高紧急：{p_hh}%
-- 高预算+低紧急：{p_hl}%
-- 低预算+高紧急：{p_lh}%
-- 低预算+低紧急：{p_ll}%
-注意：这些信念可能不准确。HR可能在伪装。
+## 你对HR的信念分布
+- 高预算+高紧急：{p_hh}% | 高预算+低紧急：{p_hl}%
+- 低预算+高紧急：{p_lh}% | 低预算+低紧急：{p_ll}%
+（可能不准确，HR可能在伪装）
 
 ## 当前局面
-- 第{state.round + 1}轮谈判
-- 目标公司：{job_company}（{company_tt}）
-- 目标级别：{job_level}
-- 该级别通常要求：{expected_years}年经验
-- 该级别→{next_level}平均晋升周期：约{expected_years * 0.8:.1f}-{expected_years * 1.2:.1f}年
-- 该级别市场薪资带：{salary_range[0]}-{salary_range[1]}K
-- HR当前报价：{offer}K
-- 市场状态：{market_label}
-- 面试评价：{interviewer_rec}
+- 第{state.round + 1}轮 | 目标：{job_company}（{company_tt}）{job_level}
+- 该级别要求：{expected_years}年经验 | 晋升到{next_level}：约{expected_years * 0.8:.1f}-{expected_years * 1.2:.1f}年
+- 市场薪资带：{salary_range[0]}-{salary_range[1]}K | HR报价：{offer}K
+- 市场状态：{market_label} | 面试评价：{interviewer_rec}
 
 ## 历史交锋
 {chr(10).join(last_actions) if last_actions else '（第一轮，尚无历史）'}
 
-## 分析任务（请逐步完成并写出你的完整推理）
+## 分析任务（逐步完成，引用数字，不要泛泛而谈）
 
 ### 一、局面解读
-HR的报价和姿态透露了什么信息？
-- 她的报价在预算带中的位置（偏低/适中/偏高）？
-- 结合市场状态，现在是谁的议价窗口？
-- 你的面试评价对你的谈判地位有什么影响？
+HR报价在预算带中的位置？当前是谁的议价窗口？面试评价对谈判地位的影响？
 
 ### 二、生成选项
-列出你可以考虑的3-4个具体行动：
-- 每个选项给出具体薪资数字和选择理由
-- 至少包含：一个保守选项、一个激进选项、一个折中选项
+列出3-4个具体行动，每个给出薪资数字和理由。包含保守、激进、折中各至少一个。
 
-### 三、对抗推演（对每个选项）
-对每个选项，推演HR可能的回应：
-- 如果HR是高预算类型，她会怎么做？概率？
-- 如果HR是低预算类型，她会怎么做？概率？
-- 加权预测最可能的回应路径
+### 三、对抗推演
+对每个选项，推演HR（高预算/低预算类型）可能的回应及概率，加权预测最可能路径。
 
-### 四、未来推演（对每个选项）
-
-a) 晋升时间线：{job_company}从{job_level}到{next_level}通常需要多久？以你的背景能否加速？
-b) 薪资增长轨迹：接受当前条件，2年后的预期薪资？
-c) 跳槽资本：2年后你的市场估值多少？
-d) 机会成本：谈判破裂后在当前市场找类似机会要多久？
-e) 风险：要价太高→破裂、要价太高→入职后被标记、接受低薪→长期跑输，哪种最不能接受？
+### 四、未来推演
+a) 晋升+薪资：{job_level}→{next_level}需要多久？2年后预期薪资？
+b) 跳槽资本+机会成本：2年后市场估值？谈判破裂找类似机会要多久？
+c) 风险识别：要价太高→破裂/被标记、接受低薪→长期跑输，哪种最不能接受？
 
 ### 五、综合评估
-将当期收益+未来收益按{career_ambition:.0%}权重的成长偏好折现，对每个选项评分。
+按{career_ambition:.0%}成长偏好权重，对每个选项折现评分。
 
-请用自然语言写出完整分析。最后用 <OPTIONS>...</OPTIONS> 包裹结构化选项列表。"""
+用自然语言写出完整分析。最后用 <OPTIONS>...</OPTIONS> 包裹结构化选项列表。"""
 
     return [
         {"role": "system", "content": system_content},
@@ -734,28 +779,21 @@ def _hr_phase1(state: Any, private_view: dict, persona: Any | None = None) -> li
     patience_val = hr_patience.hr_patience if hr_patience else 0.65
 
     system_content = (
-        "你正在作为HR进行薪资谈判。你不是机器人——你有自己的性格、压力和考量。\n"
-        "请逐步完成以下分析。你的任务只是分析，不是决策。\n\n"
-        "在分析的最后，用 <OPTIONS> 标签包裹结构化的选项列表（JSON数组格式）。"
+        "你正在作为HR进行薪资谈判。你有自己的性格、压力和考量。\n"
+        "逐步分析，最后用 <OPTIONS> 标签包裹结构化的选项列表（JSON数组格式）。"
     )
 
     user_content = f"""{persona_section}
 
-## 你的私有信息（候选人不知道）
-- 真实预算：{true_budget}K/年
-- 内部公平约束：{equity}K（超过这个数团队内部会不平衡）
-- 紧急程度：{urgency:.0%}（越高越急）
-- 候选人池质量：{pool_quality:.0%}（越高说明替代选择多）
-- 你的耐心：{patience_val:.0%}
+## 你的私有信息
+- 预算：{true_budget}K/年 | 内部公平约束：{equity}K | 紧急程度：{urgency:.0%}
+- 候选人池质量：{pool_quality:.0%} | 耐心：{patience_val:.0%}
 
-## 你对候选人的信念
-- 强候选人（高能力+有外部机会）：{p_strong}%
-- 平均候选人：{p_avg}%
-- 弱候选人（急于求稳）：{p_weak}%
+## 对候选人的信念
+- 强候选人：{p_strong}% | 平均：{p_avg}% | 弱候选人：{p_weak}%
 
 ## 当前局面
-- 第{state.round + 1}轮
-- 桌上报价：{offer}K
+- 第{state.round + 1}轮 | 桌上报价：{offer}K
 - 候选人上次行动：{last_candidate}
 - 市场状态：{market_label}
 - 候选人：{candidate_name}，技能：{', '.join(candidate_skills[:8])}
@@ -763,16 +801,16 @@ def _hr_phase1(state: Any, private_view: dict, persona: Any | None = None) -> li
 ## 分析任务
 
 ### 一、局面解读
-候选人的要价和策略透露了什么？他在虚张声势还是有底气？
+候选人的要价透露了什么？虚张声势还是有底气？
 
 ### 二、生成选项
-列出3-4个可行的回应方案。
+列出3-4个可行的回应方案及具体薪资。
 
 ### 三、对抗推演
-对每个报价方案，推演候选人可能的回应。
+对每个方案，推演候选人可能的回应及概率。
 
 ### 四、自身考量
-a) 留存风险 b) 内部公平 c) 晋升预算 d) 团队缺口价值 e) 你自己谈崩了的风险
+留存风险、内部公平、团队缺口价值、谈崩风险。
 
 ### 五、综合评估
 对每个选项评分。
@@ -795,29 +833,25 @@ def _interviewer_phase1(state: Any, private_view: dict) -> list[dict[str, str]]:
     itype = state.interviewer_type
 
     system_content = (
-        "你是一个技术面试官，正在评估一个候选人。逐步分析。"
-        "用 <OPTIONS> 包裹选项。"
+        "你是一个技术面试官。逐步分析后用 <OPTIONS> 包裹选项。"
     )
 
     user_content = f"""## 候选人
 技能：{', '.join(state.resume.skills[:12])}
 经验：{len(state.resume.experience)}段工作经历
 教育：{', '.join(f'{e.school} {e.degree}' for e in state.resume.education)}
-项目：{len(state.resume.projects)}个
 
 ## 岗位
 {state.job.title} @ {state.job.company} ({state.job.level})
 要求：{', '.join(state.job.required_skills[:10])}
 
 ## 你的风格
-严格度：{itype.strictness:.0%}
-技能偏好：{itype.preferred_skill_style}
-风险容忍：{itype.risk_tolerance:.0%}
+严格度：{itype.strictness:.0%} | 技能偏好：{itype.preferred_skill_style} | 风险容忍：{itype.risk_tolerance:.0%}
 
-## 分析步骤
+## 分析
 1. 多维度评分（编码、架构、领域、软技能、成长潜力）
-2. 风险识别（技能缺口、跳槽频率、年龄阈值、经历重叠）
-3. 反事实检验：对每个风险信号，考虑替代解释
+2. 风险识别（技能缺口、跳槽频率、年龄阈值）
+3. 反事实检验：考虑风险信号的替代解释
 4. 推荐：strong_hire / hire / weak_hire / no_hire"""
 
     return [
@@ -835,27 +869,22 @@ def _market_phase1(state: Any, private_view: dict) -> list[dict[str, str]]:
     mt = state.market_type
 
     system_content = (
-        "你是市场环境Agent。分析当前市场状态并决定释放什么信号。"
+        "你是市场环境Agent。分析市场状态并决定释放什么信号。"
         "用 <OPTIONS> 包裹选项。"
     )
 
     user_content = f"""## 市场状态
 供需比：{mt.supply_demand_ratio}（<1=候选人市场，>1=雇主市场）
 薪资趋势：{mt.salary_trend}
-热门技能：{', '.join(mt.hot_skills[:5]) if mt.hot_skills else '无特殊热门技能'}
+热门技能：{', '.join(mt.hot_skills[:5]) if mt.hot_skills else '无'}
 行业增速：{mt.industry_growth:.0%}
 
 ## 谈判进展
-第{state.round + 1}轮
-当前报价：{state.public_offer}K
-状态：{state.public_status}
+第{state.round + 1}轮 | 报价：{state.public_offer}K | 状态：{state.public_status}
 
-## 分析
-1. 当前谈判节奏适合释放什么信号？
-2. 如果僵持，是否需要'竞争加剧'信号？如果接近成交，释放'稳定'信号？
-
-## 决策
-选择合适的市场信号组合。"""
+## 分析与决策
+1. 当前节奏适合什么信号？
+2. 僵持→'竞争加剧'？接近成交→'稳定'？"""
 
     return [
         {"role": "system", "content": system_content},

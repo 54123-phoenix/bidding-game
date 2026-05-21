@@ -159,6 +159,105 @@ class AgentAction(BaseModel):
     timestamp: str = ""
 
 
+# ═══════════════════════════════════════════════════════════════════════════════
+# InfoWar Types — Information Warfare Mechanism (v3.0)
+# ═══════════════════════════════════════════════════════════════════════════════
+
+
+class InformationCard(BaseModel):
+    """Candidate's information cards — can reveal, conceal, or fake."""
+    card_id: str
+    card_type: Literal["outside_offer", "current_salary", "true_ability",
+                       "family_burden", "other_interviews", "resignation_timeline"]
+    true_value: str | int | float = Field(description="The actual truth")
+    revealed_value: str | int | float | None = Field(default=None, description="What was stated (may differ from truth)")
+    reveal_state: Literal["hidden", "revealed", "faked", "probed"] = "hidden"
+    verifiability: float = Field(default=0.5, ge=0.0, le=1.0, description="Probability HR can verify")
+    trust_impact: float = Field(default=-0.3, ge=-1.0, le=1.0, description="Trust change if caught lying")
+    salary_impact: float = Field(default=0.0, ge=-50, le=50, description="Marginal salary impact (K)")
+    description: str = Field(default="", description="Display text for frontend")
+    icon: str = Field(default="🃏", description="Emoji icon")
+
+
+class TrustState(BaseModel):
+    """Trust between candidate and HR — core InfoWar state."""
+    hr_trust_in_candidate: float = Field(default=0.5, ge=0.0, le=1.0)
+    candidate_trust_in_hr: float = Field(default=0.5, ge=0.0, le=1.0)
+    trust_history: list[dict] = Field(default_factory=list)
+    red_flags: list[str] = Field(default_factory=list)
+    last_trust_change: float = Field(default=0.0, description="Most recent trust delta")
+    trust_label: str = Field(default="谨慎信任", description="Human-readable trust level")
+
+
+class InformationAction(BaseModel):
+    """An information warfare action attached to an AgentAction."""
+    action_type: Literal["reveal", "conceal", "fake", "probe", "verify", "none"] = "none"
+    target_card: str | None = None
+    stated_value: str | int | float | None = None
+    actual_value: str | int | float | None = None
+    detected: bool = False
+    detection_reason: str = ""
+    trust_delta: float = Field(default=0.0, description="Resulting trust change")
+    hr_reaction: str = Field(default="", description="HR's narrative reaction")
+
+
+class InfoWarResult(BaseModel):
+    """Summary of information warfare for a single round."""
+    round: int
+    candidate_action: InformationAction | None = None
+    hr_action: InformationAction | None = None
+    trust_before: TrustState
+    trust_after: TrustState
+    cards_revealed: list[str] = Field(default_factory=list)
+    cards_faked: list[str] = Field(default_factory=list)
+    cards_probed: list[str] = Field(default_factory=list)
+    detected_fakes: list[str] = Field(default_factory=list)
+    narrative: str = Field(default="", description="Narrative summary of the info phase")
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# Parallel Universe Types — Counterfactual Visualization
+# ═══════════════════════════════════════════════════════════════════════════════
+
+
+class TimelineEvent(BaseModel):
+    """A single event in a career timeline."""
+    year: float = Field(description="Years since hire, e.g. 0.5 = 6 months")
+    month: int = Field(default=0)
+    event_type: Literal["salary_change", "promotion", "layoff", "ipo",
+                        "team_change", "skill_growth", "regret_moment",
+                        "satisfaction", "startup", "switch_company"] = "salary_change"
+    title: str = ""
+    description: str = ""
+    salary: int | None = None
+    level: str | None = None
+    satisfaction: float | None = Field(default=None, ge=0.0, le=1.0)
+    triggered_by: str = Field(default="", description="Decision that triggered this")
+    icon: str = Field(default="📅")
+
+
+class UniverseTimeline(BaseModel):
+    """One parallel universe timeline."""
+    universe_id: str
+    universe_label: str
+    universe_emoji: str = "🌍"
+    trigger_decision: str = ""
+    color: str = "#22d3ee"
+    timeline: list[TimelineEvent] = Field(default_factory=list)
+    final_assessment: str = ""
+    regret_score: float = Field(default=0.0, ge=0.0, le=1.0)
+    final_salary: int = 0
+    final_satisfaction: float = Field(default=0.5, ge=0.0, le=1.0)
+
+
+class ParallelUniverseReport(BaseModel):
+    """Complete parallel universe analysis."""
+    base_universe: UniverseTimeline
+    alternative_universes: list[UniverseTimeline] = Field(default_factory=list)
+    comparison_summary: str = ""
+    key_insight: str = ""
+
+
 class GameState(BaseModel):
     """Full state of a multi-round hiring negotiation."""
     game_id: str
@@ -199,6 +298,15 @@ class GameState(BaseModel):
     candidate_patience: float = 1.0
     patience_events: list[dict] = Field(default_factory=list)
     termination_reason: str = ""
+    screening_multiplier: float = 1.0  # Opening offer adjustment from resume screening tier
+
+    # InfoWar (v3.0 — information warfare)
+    candidate_hand: list[InformationCard] = Field(default_factory=list)
+    trust_state: TrustState = Field(default_factory=TrustState)
+    information_history: list[InformationAction] = Field(default_factory=list)
+    info_war_enabled: bool = Field(default=True)
+    hr_probe_count: int = 0
+    candidate_reveal_count: int = 0
 
 
 class GameResult(BaseModel):
@@ -228,6 +336,13 @@ class GameResult(BaseModel):
 
     # Meta
     hr_persona: dict = Field(default_factory=dict, description="HR persona info for frontend display")
+
+    # InfoWar results
+    info_war_summary: InfoWarResult | None = None
+    trust_final: TrustState | None = None
+
+    # Parallel Universe
+    parallel_universes: ParallelUniverseReport | None = None
 
 
 class EquilibriumResult(BaseModel):

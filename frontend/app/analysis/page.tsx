@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { API_BASE } from "@/lib/api";
 
 const DIM_LABELS: Record<string, string> = {
   skill_match: "技能匹配",
@@ -25,7 +26,7 @@ export default function AnalysisPage() {
     setLoading(true);
     setError("");
     try {
-      const resp = await fetch("http://localhost:8001/api/report", {
+      const resp = await fetch(`${API_BASE}/api/report`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ resume: JSON.parse(resumeJson), job: JSON.parse(jobJson) }),

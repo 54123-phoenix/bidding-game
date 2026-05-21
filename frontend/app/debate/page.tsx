@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import NumberTicker from "@/components/number-ticker";
+import { API_BASE } from "@/lib/api";
 import PlayerIcon from "@/components/player-icon";
 
 const DEMOS = [
@@ -178,7 +179,7 @@ export default function DebatePage() {
     try {
       const demo = DEMOS[selected];
       const resp = await fetch(
-        `http://localhost:8001/api/debate/proposal?resume_key=${demo.resume}&job_key=${demo.job}&strategy=${strategy}&market=${market}`
+        `${API_BASE}/api/debate/proposal?resume_key=${demo.resume}&job_key=${demo.job}&strategy=${strategy}&market=${market}`
       );
       const data = await resp.json();
       if (data.status === "ok") setResult(data);

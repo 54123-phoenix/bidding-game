@@ -1,0 +1,56 @@
+# Git
+.git
+.gitignore
+
+# Python
+__pycache__
+*.pyc
+*.pyo
+*.pyd
+.Python
+*.egg-info
+dist
+build
+.venv
+venv
+env
+
+# Node.js
+node_modules
+npm-debug.log
+yarn-error.log
+.next
+out
+
+# IDE
+.vscode
+.idea
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Data (will be mounted as volume)
+data/qdrant_storage/*
+!data/qdrant_storage/.gitkeep
+
+# Tests (not needed in production image)
+tests
+.pytest_cache
+
+# Documentation
+docs
+*.md
+!README.md
+
+# Environment files (should be passed via docker-compose)
+.env
+.env.local
+.env.*.local
+
+# Docker
+docker-compose*.yml
+Dockerfile*
+docker/
