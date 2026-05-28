@@ -3,7 +3,7 @@
 
 $ErrorActionPreference = "Stop"
 
-$root = Split-Path -Parent $MyInvocation.MyCommand.Path
+$root = Split-Path -Parent (Split-Path -Parent $MyInvocation.MyCommand.Path)
 $backendCmd = "cd `"$root`"; python -m uvicorn api.main:app --host 0.0.0.0 --port 8001 --reload"
 $frontendCmd = "cd `"$root\frontend`"; npm run dev"
 
@@ -40,7 +40,22 @@ $backend = Start-Process powershell -ArgumentList "-NoExit","-Command",$backendC
 Start-Sleep -Seconds 2
 
 Write-Host "  Frontend -> http://localhost:3000" -ForegroundColor Cyan
-$frontend = Start-Process powershell -ArgumentList "-NoExit","-Command",$frontendCmd -PassThru
+$frontend = Start-Process cmd.exe -ArgumentList '/c',"npm run dev" -WorkingDirectory "$root\frontend" -PassThru
+
+$deadline = (Get-Date).AddSeconds(30)
+while ((Get-Date) -lt $deadline) {
+    $backendReady = Get-NetTCPConnection -LocalPort 8001 -State Listen -ErrorAction SilentlyContinue
+    $frontendReady = Get-NetTCPConnection -LocalPort 3000 -State Listen -ErrorAction SilentlyContinue
+    if ($backendReady -and $frontendReady) {
+        break
+    }
+    Start-Sleep -Seconds 1
+}
+
+if (-not (Get-NetTCPConnection -LocalPort 8001 -State Listen -ErrorAction SilentlyContinue) -or -not (Get-NetTCPConnection -LocalPort 3000 -State Listen -ErrorAction SilentlyContinue)) {
+    Write-Host "ERROR: Services failed to start within 30 seconds." -ForegroundColor Red
+    exit 1
+}
 
 Write-Host ""
 Write-Host "========================================" -ForegroundColor Cyan

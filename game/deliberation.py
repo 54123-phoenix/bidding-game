@@ -199,7 +199,7 @@ async def _deliberate_llm(
     )
     messages[0]["content"] += decision_instruction
 
-    raw = await call_llm_chat(messages, temperature=0.3, max_retries=2, model=model)
+    raw = await call_llm_chat(messages, temperature=0.3, max_retries=2, model=model, task_type="deliberation")
     if not raw:
         return None
 
@@ -277,17 +277,17 @@ async def deliberate_stream(
 ):
     """Stream the deliberation process as SSE events.
 
+    Single-call design: analysis + decision in one LLM call, halving latency.
+    The decision is auto-selected from the top-ranked option by expected_utility.
+
     Yields dicts representing SSE events:
       {"type": "phase", "phase": "analyze"|"decide"}
       {"type": "chunk", "text": "..."}
       {"type": "options", "options": [...]}
-      {"type": "decision", "decision": {...}}
       {"type": "done", "result": {...}}
       {"type": "error", "message": "..."}
-
-    Falls back to non-streaming deliberation if streaming is unavailable.
     """
-    from llm.client import call_llm_chat_stream, call_llm_chat, is_llm_available
+    from llm.client import call_llm_chat_stream, is_llm_available
 
     if not is_llm_available():
         result = _deliberate_rules(agent_role, state, private_view, persona)
@@ -295,23 +295,34 @@ async def deliberate_stream(
         return
 
     try:
-        # ── Phase 1: Analyze (streamed) ──
+        # ── Build combined prompt (analysis + decision in one call) ──
+        messages = _build_phase1_prompt(agent_role, state, private_view, persona)
+        decision_instruction = (
+            "\n\n在完成上述分析后，输出最终决策（JSON格式）：\n"
+            '{"action": "accept|counter_offer|offer|reject|signal", '
+            '"salary_amount": <int>, '
+            '"reasoning": "<选择理由>", '
+            '"confidence": <0.0-1.0>}'
+        )
+        messages[0]["content"] += decision_instruction
+
         yield {"type": "phase", "phase": "analyze"}
 
-        phase1_messages = _build_phase1_prompt(agent_role, state, private_view, persona)
-        phase1_raw = ""
-        async for chunk in call_llm_chat_stream(phase1_messages, temperature=0.4, model=model):
-            phase1_raw += chunk
+        raw = ""
+        async for chunk in call_llm_chat_stream(messages, temperature=0.4, model=model, task_type="realtime"):
+            raw += chunk
             yield {"type": "chunk", "text": chunk}
 
-        if not phase1_raw.strip():
-            yield {"type": "error", "message": "分析阶段未产生输出"}
+        if not raw.strip():
+            yield {"type": "error", "message": "LLM未产生输出"}
             result = _deliberate_rules(agent_role, state, private_view, persona)
             yield {"type": "done", "result": deliberation_to_dict(result)}
             return
 
-        # Parse options from Phase 1
-        options_data = _extract_options_from_text(phase1_raw)
+        # Parse options and decision from the single response
+        options_data = _extract_options_from_text(raw)
+        decision_data = _parse_json_response(raw)
+
         if options_data:
             simplified_options = []
             for opt in options_data:
@@ -326,18 +337,9 @@ async def deliberate_stream(
                 })
             yield {"type": "options", "options": simplified_options}
 
-        # ── Phase 2: Decide (streamed) ──
+        # Brief "decide" phase — picked from options (no second LLM call)
         yield {"type": "phase", "phase": "decide"}
 
-        phase2_messages = _build_phase2_prompt(agent_role, phase1_raw, state, private_view)
-        phase2_raw = ""
-        async for chunk in call_llm_chat_stream(phase2_messages, temperature=0.2, model=model):
-            phase2_raw += chunk
-            yield {"type": "chunk", "text": chunk}
-
-        decision_data = _parse_json_response(phase2_raw)
-
-        # ── Build full result ──
         if options_data:
             evaluated = []
             for i, opt_data in enumerate(options_data):
@@ -363,17 +365,19 @@ async def deliberate_stream(
                 ))
             evaluated.sort(key=lambda o: -o.expected_utility)
 
-            selected_action = decision_data.get("action", "counter_offer")
-            selected_salary = decision_data.get("salary_amount")
+            # Select top-ranked option (or match with decision data if available)
+            selected_action = decision_data.get("action") if decision_data else None
+            selected_salary = decision_data.get("salary_amount") if decision_data else None
             selected_index = 0
-            for i, opt in enumerate(evaluated):
-                if opt.option.action_type == selected_action:
-                    opt_salary = opt.option.params.get("salary_amount") or opt.option.params.get("salary_offer")
-                    if selected_salary is None or opt_salary == selected_salary or abs((opt_salary or 0) - (selected_salary or 0)) <= 5:
-                        selected_index = i
-                        break
+            if selected_action:
+                for i, opt in enumerate(evaluated):
+                    if opt.option.action_type == selected_action:
+                        opt_salary = opt.option.params.get("salary_amount") or opt.option.params.get("salary_offer")
+                        if selected_salary is None or opt_salary == selected_salary or abs((opt_salary or 0) - (selected_salary or 0)) <= 5:
+                            selected_index = i
+                            break
 
-            paragraphs = [p.strip() for p in phase1_raw.split("\n\n") if p.strip()]
+            paragraphs = [p.strip() for p in raw.split("\n\n") if p.strip()]
             situation = paragraphs[0] if paragraphs else ""
             beliefs_part = paragraphs[1] if len(paragraphs) > 1 else ""
 
@@ -382,20 +386,11 @@ async def deliberate_stream(
                 beliefs_summary=beliefs_part,
                 evaluated_options=evaluated,
                 selected_index=selected_index,
-                confidence=float(decision_data.get("confidence", 0.6)),
+                confidence=float(decision_data.get("confidence", 0.6)) if decision_data else 0.6,
             )
         else:
             result = _deliberate_rules(agent_role, state, private_view, persona)
 
-        yield {
-            "type": "decision",
-            "decision": {
-                "action": decision_data.get("action", "counter_offer") if decision_data else "counter_offer",
-                "salary_amount": decision_data.get("salary_amount") if decision_data else None,
-                "reasoning": decision_data.get("reasoning", "") if decision_data else "",
-                "confidence": decision_data.get("confidence", 0.6) if decision_data else 0.5,
-            },
-        }
         yield {"type": "done", "result": deliberation_to_dict(result)}
 
     except Exception as exc:
@@ -667,58 +662,32 @@ def _candidate_phase1(state: Any, private_view: dict) -> list[dict[str, str]]:
     next_level = level_nums.get(job_level, "下一级")
 
     system_content = (
-        "你正在参加一场真实的薪资谈判。你要扮演一个真实的候选人——有野心、有顾虑、会算计。\n"
-        "关键原则：逐步思考，从多个角度考虑，保持怀疑，用中文输出。\n\n"
-        "在分析的最后，用 <OPTIONS> 标签包裹结构化的选项列表（JSON数组格式）。\n"
-        '每个选项格式：{"action": "counter_offer", "salary_amount": 78, "label": "要价78K", '
-        '"expected_utility": 0.7, "risk_level": "medium", '
-        '"best_case": "HR接受", "worst_case": "HR拒绝", '
-        '"opponent_projections": [{"action": "accept", "probability": 0.55, "reasoning": "..."}], '
-        '"promotion_timeline": "...", "salary_trajectory": "...", "exit_value": "...", '
-        '"opportunity_cost": "...", "risk_of_overpay": "..."}'
+        "你是候选人，正在薪资谈判。简洁分析局势，直接给出行动选项。"
+        "最后用 <OPTIONS>...</OPTIONS> 包裹JSON数组格式的选项列表。"
     )
 
-    user_content = f"""## 你是谁
-- 真实能力：{true_ability:.0%}（只有你自己知道）
-- 薪资底线：{reservation_wage}K/年
-- 外部机会：{json.dumps(outside_options, ensure_ascii=False) if outside_options else '无'}
-- 职业偏好：{career_ambition:.0%}（1.0=看重成长，0.0=只看薪资）
-- 经验年限：{total_years:.0f}年
+    user_content = f"""## 你的底牌
+- 能力：{true_ability:.0%} | 底线：{reservation_wage}K/年 | 经验：{total_years:.0f}年
+- 职业偏好：{career_ambition:.0%}（1.0=成长优先） | 外部机会：{json.dumps(outside_options, ensure_ascii=False) if outside_options else '无'}
 
-## 你对HR的信念分布
-- 高预算+高紧急：{p_hh}% | 高预算+低紧急：{p_hl}%
-- 低预算+高紧急：{p_lh}% | 低预算+低紧急：{p_ll}%
-（可能不准确，HR可能在伪装）
+## HR信念分布
+高预算高紧：{p_hh}% | 高预算低紧：{p_hl}% | 低预算高紧：{p_lh}% | 低预算低紧：{p_ll}%
 
 ## 当前局面
-- 第{state.round + 1}轮 | 目标：{job_company}（{company_tt}）{job_level}
-- 该级别要求：{expected_years}年经验 | 晋升到{next_level}：约{expected_years * 0.8:.1f}-{expected_years * 1.2:.1f}年
-- 市场薪资带：{salary_range[0]}-{salary_range[1]}K | HR报价：{offer}K
-- 市场状态：{market_label} | 面试评价：{interviewer_rec}
+第{state.round + 1}轮 | {job_company}（{company_tt}）{job_level} | 晋升{next_level}约{expected_years * 0.8:.1f}-{expected_years * 1.2:.1f}年
+市场带：{salary_range[0]}-{salary_range[1]}K | HR报价：{offer}K | 市场：{market_label} | 面试：{interviewer_rec}
 
-## 历史交锋
-{chr(10).join(last_actions) if last_actions else '（第一轮，尚无历史）'}
+## 历史
+{chr(10).join(last_actions) if last_actions else '（首轮）'}
 
-## 分析任务（逐步完成，引用数字，不要泛泛而谈）
+## 分析（简洁，每项2-3句）
 
-### 一、局面解读
-HR报价在预算带中的位置？当前是谁的议价窗口？面试评价对谈判地位的影响？
+1. 局面：HR报价在市场带的什么位置？谈判权在谁手里？
+2. 生成3-4个行动方案（含保守/折中/激进），每个给出薪资数字
+3. 对抗推演：每个方案下HR（高/低预算类型）的可能回应
+4. 风险：要价太高→破裂 vs 接受低薪→长期跑输，哪个更不能接受？
 
-### 二、生成选项
-列出3-4个具体行动，每个给出薪资数字和理由。包含保守、激进、折中各至少一个。
-
-### 三、对抗推演
-对每个选项，推演HR（高预算/低预算类型）可能的回应及概率，加权预测最可能路径。
-
-### 四、未来推演
-a) 晋升+薪资：{job_level}→{next_level}需要多久？2年后预期薪资？
-b) 跳槽资本+机会成本：2年后市场估值？谈判破裂找类似机会要多久？
-c) 风险识别：要价太高→破裂/被标记、接受低薪→长期跑输，哪种最不能接受？
-
-### 五、综合评估
-按{career_ambition:.0%}成长偏好权重，对每个选项折现评分。
-
-用自然语言写出完整分析。最后用 <OPTIONS>...</OPTIONS> 包裹结构化选项列表。"""
+<OPTIONS>格式：{{"action": "counter_offer", "salary_amount": 数字, "label": "标签", "expected_utility": 0.0-1.0, "risk_level": "low/medium/high", "best_case": "", "worst_case": "", "opponent_projections": [{{"action": "accept/counter_offer/reject", "probability": 0.0-1.0, "reasoning": ""}}], "promotion_timeline": "", "salary_trajectory": "", "exit_value": "", "opportunity_cost": "", "risk_of_overpay": ""}}"""
 
     return [
         {"role": "system", "content": system_content},
@@ -779,43 +748,33 @@ def _hr_phase1(state: Any, private_view: dict, persona: Any | None = None) -> li
     patience_val = hr_patience.hr_patience if hr_patience else 0.65
 
     system_content = (
-        "你正在作为HR进行薪资谈判。你有自己的性格、压力和考量。\n"
-        "逐步分析，最后用 <OPTIONS> 标签包裹结构化的选项列表（JSON数组格式）。"
+        "你是HR，正在进行薪资谈判。简洁分析，直接给出选项。"
+        "最后用 <OPTIONS>...</OPTIONS> 包裹JSON数组格式的选项列表。"
     )
 
     user_content = f"""{persona_section}
 
-## 你的私有信息
-- 预算：{true_budget}K/年 | 内部公平约束：{equity}K | 紧急程度：{urgency:.0%}
-- 候选人池质量：{pool_quality:.0%} | 耐心：{patience_val:.0%}
+## 私有信息
+预算：{true_budget}K/年 | 内部公平约束：{equity}K | 紧急：{urgency:.0%}
+候选人池质量：{pool_quality:.0%} | 耐心：{patience_val:.0%}
 
 ## 对候选人的信念
-- 强候选人：{p_strong}% | 平均：{p_avg}% | 弱候选人：{p_weak}%
+强：{p_strong}% | 平均：{p_avg}% | 弱：{p_weak}%
 
 ## 当前局面
-- 第{state.round + 1}轮 | 桌上报价：{offer}K
-- 候选人上次行动：{last_candidate}
-- 市场状态：{market_label}
-- 候选人：{candidate_name}，技能：{', '.join(candidate_skills[:8])}
+第{state.round + 1}轮 | 报价：{offer}K | 市场：{market_label}
+候选人行动：{last_candidate}
+候选人：{candidate_name}，技能：{', '.join(candidate_skills[:8])}
 
-## 分析任务
+## 分析（简洁完成，每项2-3句话即可）
 
-### 一、局面解读
-候选人的要价透露了什么？虚张声势还是有底气？
+1. 局面解读：候选人要价透露了什么信号？在预算带什么位置？
+2. 生成3-4个可行行动方案，每个给出薪资数字（K/年）
+3. 对每个方案，简要推演候选人可能的回应
+4. 综合评分（考虑紧急度、内部公平、谈崩风险）
 
-### 二、生成选项
-列出3-4个可行的回应方案及具体薪资。
+<OPTIONS>数组格式：{{"action": "counter_offer", "salary_amount": 数字, "label": "标签", "expected_utility": 0.0-1.0, "risk_level": "low/medium/high", "best_case": "", "worst_case": "", "opponent_projections": [{{"action": "accept/counter_offer/reject", "probability": 0.0-1.0, "reasoning": ""}}], "promotion_timeline": "", "salary_trajectory": "", "exit_value": "", "opportunity_cost": "", "risk_of_overpay": ""}}"""
 
-### 三、对抗推演
-对每个方案，推演候选人可能的回应及概率。
-
-### 四、自身考量
-留存风险、内部公平、团队缺口价值、谈崩风险。
-
-### 五、综合评估
-对每个选项评分。
-
-用自然语言分析。最后用 <OPTIONS>...</OPTIONS> 包裹选项列表。"""
 
     return [
         {"role": "system", "content": system_content},
@@ -833,26 +792,23 @@ def _interviewer_phase1(state: Any, private_view: dict) -> list[dict[str, str]]:
     itype = state.interviewer_type
 
     system_content = (
-        "你是一个技术面试官。逐步分析后用 <OPTIONS> 包裹选项。"
+        "你是技术面试官。简洁评估候选人，用 <OPTIONS> 包裹选项。"
     )
 
     user_content = f"""## 候选人
 技能：{', '.join(state.resume.skills[:12])}
-经验：{len(state.resume.experience)}段工作经历
-教育：{', '.join(f'{e.school} {e.degree}' for e in state.resume.education)}
+经验：{len(state.resume.experience)}段 | 教育：{', '.join(f'{e.school} {e.degree}' for e in state.resume.education)}
 
 ## 岗位
-{state.job.title} @ {state.job.company} ({state.job.level})
-要求：{', '.join(state.job.required_skills[:10])}
+{state.job.title} @ {state.job.company} ({state.job.level}) | 要求：{', '.join(state.job.required_skills[:10])}
 
 ## 你的风格
-严格度：{itype.strictness:.0%} | 技能偏好：{itype.preferred_skill_style} | 风险容忍：{itype.risk_tolerance:.0%}
+严格度：{itype.strictness:.0%} | 偏好：{itype.preferred_skill_style} | 风险容忍：{itype.risk_tolerance:.0%}
 
-## 分析
-1. 多维度评分（编码、架构、领域、软技能、成长潜力）
-2. 风险识别（技能缺口、跳槽频率、年龄阈值）
-3. 反事实检验：考虑风险信号的替代解释
-4. 推荐：strong_hire / hire / weak_hire / no_hire"""
+## 评估（简洁）
+1. 评分：编码/架构/领域/软技能/潜力（0-1分）
+2. 风险：技能缺口、跳槽频率
+3. 推荐：strong_hire / hire / weak_hire / no_hire"""
 
     return [
         {"role": "system", "content": system_content},
@@ -898,12 +854,17 @@ def _market_phase1(state: Any, private_view: dict) -> list[dict[str, str]]:
 
 
 def _extract_options_from_text(text: str) -> list[dict]:
-    """Extract the <OPTIONS> JSON array from deliberation text."""
+    """Extract the <OPTIONS> JSON from deliberation text. Handles both array and single object."""
     m = re.search(r'<OPTIONS>\s*([\s\S]*?)\s*</OPTIONS>', text)
     if not m:
         return []
     try:
-        return json.loads(m.group(1))
+        data = json.loads(m.group(1))
+        if isinstance(data, dict):
+            return [data]
+        if isinstance(data, list):
+            return [item for item in data if isinstance(item, dict)]
+        return []
     except json.JSONDecodeError:
         return []
 

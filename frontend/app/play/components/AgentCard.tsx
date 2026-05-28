@@ -3,6 +3,7 @@
 import { motion } from "framer-motion";
 import PlayerIcon from "@/components/player-icon";
 import ActionBadge from "./ActionBadge";
+import type { PlayerRole, RoundActionView } from "../hooks/types";
 
 const AGENT_LABELS: Record<string, string> = {
   candidate: "候选人",
@@ -59,8 +60,8 @@ export default function AgentCard({
   actions,
   privateInfo,
 }: {
-  role: string;
-  actions: any[];
+  role: PlayerRole;
+  actions: RoundActionView[];
   privateInfo?: Record<string, unknown>;
 }) {
   const myActions = actions.filter((a) => a.player === role);
@@ -75,7 +76,7 @@ export default function AgentCard({
       transition={{ duration: 0.35 }}
     >
       <div className="flex items-center gap-2 mb-3">
-        <PlayerIcon player={role as any} size={34} />
+        <PlayerIcon player={role} size={34} />
         <div>
           <div className="text-sm font-semibold text-[var(--text-primary)]">{AGENT_LABELS[role]}</div>
           <div className="text-[10px] text-[var(--text-tertiary)]">私有信息不可见</div>

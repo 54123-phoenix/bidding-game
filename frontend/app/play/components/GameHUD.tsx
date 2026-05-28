@@ -11,7 +11,7 @@ interface GameHUDProps {
   overallScore: number;
   round: number;
   maxRounds: number;
-  candidateReservationWage?: number;
+  candidateReservationWage: number | null;
   hrPersona?: { name: string; archetype: string; tagline: string } | null;
 }
 
@@ -49,7 +49,7 @@ export default function GameHUD({
 
   return (
     <motion.div
-      className="relative overflow-hidden rounded-xl border border-[var(--border-hairline)] bg-[var(--bg-panel)]"
+      className="surface-raised overflow-hidden rounded-3xl"
       initial={{ opacity: 0, y: -10 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.5 }}
@@ -59,7 +59,7 @@ export default function GameHUD({
       <div className="relative z-10 px-4 py-3">
         <div className="flex items-center gap-4 flex-wrap">
           <div className="flex items-center gap-2.5 shrink-0">
-            <div className="w-8 h-8 rounded-lg bg-[var(--accent-cyan-glow)] border border-[var(--accent-cyan)]/20 flex items-center justify-center">
+            <div className="flex h-8 w-8 items-center justify-center rounded-lg border border-[var(--accent-cyan)]/20 bg-[var(--accent-cyan-glow)] shadow-[0_0_18px_rgba(34,211,238,0.12)]">
               <span className="text-sm font-bold text-[var(--accent-cyan)] font-mono">
                 {publicOffer || "—"}
               </span>
@@ -153,6 +153,12 @@ export default function GameHUD({
               <span className="text-[10px] text-[var(--text-secondary)]">{interviewerRec}</span>
               <span className="text-[9px] text-[var(--accent-cyan)] font-mono">{scorePct}%</span>
             </div>
+            {candidateReservationWage !== null && (
+              <div className="flex items-center gap-1.5">
+                <span className="text-[9px] text-[var(--text-tertiary)]">底线</span>
+                <span className="text-[10px] text-[var(--text-secondary)] font-mono">{candidateReservationWage}K/年</span>
+              </div>
+            )}
           </div>
         </div>
       </div>

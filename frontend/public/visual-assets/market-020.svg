@@ -1,0 +1,25 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="480" height="300" viewBox="0 0 480 300" role="img" aria-label="市场 visual asset 20">
+  <defs>
+    <radialGradient id="g20" cx="45%" cy="35%" r="70%">
+      <stop offset="0%" stop-color="#34d399" stop-opacity="0.34"/>
+      <stop offset="48%" stop-color="#fbbf24" stop-opacity="0.16"/>
+      <stop offset="100%" stop-color="#080a10" stop-opacity="1"/>
+    </radialGradient>
+    <linearGradient id="line20" x1="0" x2="1" y1="0" y2="1">
+      <stop offset="0" stop-color="#34d399"/>
+      <stop offset="1" stop-color="#fbbf24"/>
+    </linearGradient>
+    <filter id="glow20" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur stdDeviation="5" result="blur"/>
+      <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+  </defs>
+  <rect width="480" height="300" rx="28" fill="#080a10"/>
+  <rect x="1" y="1" width="478" height="298" rx="27" fill="url(#g20)" stroke="#34d399" stroke-opacity="0.22"/>
+  <g opacity="0.22"><path d="M94 73 C 174 45, 324 101, 404 73" stroke="#34d399" stroke-opacity="0.22" stroke-width="1.2" fill="none"/><path d="M107 107 C 187 79, 305 135, 385 107" stroke="#34d399" stroke-opacity="0.30" stroke-width="1.2" fill="none"/><path d="M60 141 C 140 113, 286 169, 366 141" stroke="#34d399" stroke-opacity="0.38" stroke-width="1.2" fill="none"/><path d="M73 175 C 153 147, 347 203, 427 175" stroke="#34d399" stroke-opacity="0.22" stroke-width="1.2" fill="none"/><path d="M86 209 C 166 181, 328 237, 408 209" stroke="#34d399" stroke-opacity="0.30" stroke-width="1.2" fill="none"/><path d="M99 243 C 179 215, 309 271, 389 243" stroke="#34d399" stroke-opacity="0.38" stroke-width="1.2" fill="none"/></g>
+  <ellipse cx="146" cy="168" rx="68" ry="36" fill="none" stroke="url(#line20)" stroke-width="1.8" filter="url(#glow20)"/>
+  <ellipse cx="146" cy="168" rx="34" ry="18" fill="none" stroke="#fbbf24" stroke-opacity="0.65" stroke-width="1.2" transform="rotate(46 146 168)"/>
+  <g><circle cx="328" cy="46" r="3" fill="#34d399" fill-opacity="0.75"/><circle cx="294" cy="172" r="4" fill="#fbbf24" fill-opacity="0.75"/><circle cx="260" cy="78" r="5" fill="#34d399" fill-opacity="0.75"/><circle cx="226" cy="204" r="6" fill="#fbbf24" fill-opacity="0.75"/><circle cx="192" cy="110" r="3" fill="#34d399" fill-opacity="0.75"/><circle cx="158" cy="236" r="4" fill="#fbbf24" fill-opacity="0.75"/><circle cx="124" cy="142" r="5" fill="#34d399" fill-opacity="0.75"/><circle cx="90" cy="48" r="6" fill="#fbbf24" fill-opacity="0.75"/><circle cx="56" cy="174" r="3" fill="#34d399" fill-opacity="0.75"/></g>
+  <text x="34" y="252" fill="#e8e6e0" font-family="ui-sans-serif, system-ui" font-size="22" font-weight="800">市场</text>
+  <text x="34" y="274" fill="#34d399" font-family="ui-monospace, monospace" font-size="11" letter-spacing="3">MARKET / 020</text>
+</svg>

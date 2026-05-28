@@ -272,7 +272,7 @@ export default function TutorialModal({ onComplete, onSkip }: TutorialModalProps
                 initial={{ opacity: 0, scale: 0.9 }}
                 animate={{ opacity: 1, scale: 1 }}
                 onClick={onComplete}
-                className="px-5 py-2.5 rounded-lg text-sm font-bold bg-[var(--accent-cyan)] text-[var(--bg-canvas)] hover:brightness-110 transition-all shadow-lg shadow-cyan-500/20"
+                className="px-5 py-2.5 rounded-lg text-sm font-bold bg-[var(--accent-cyan)] text-[var(--bg-canvas)] hover:brightness-110 transition-[filter,transform] shadow-lg shadow-cyan-500/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-cyan)]/60"
               >
                 🚀 开始体验
               </motion.button>
@@ -280,7 +280,7 @@ export default function TutorialModal({ onComplete, onSkip }: TutorialModalProps
             {page < PAGES.length - 1 && (
               <button
                 onClick={goNext}
-                className="px-5 py-2.5 rounded-lg text-sm font-bold bg-[var(--accent-cyan)] text-[var(--bg-canvas)] hover:brightness-110 transition-all"
+                className="px-5 py-2.5 rounded-lg text-sm font-bold bg-[var(--accent-cyan)] text-[var(--bg-canvas)] hover:brightness-110 transition-[filter,transform] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-cyan)]/60"
               >
                 下一步 →
               </button>

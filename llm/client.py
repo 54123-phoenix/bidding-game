@@ -10,6 +10,7 @@ import asyncio
 import json
 import logging
 from collections.abc import Callable, Generator
+from llm.router import resolve_model
 
 logger = logging.getLogger("llm.client")
 
@@ -36,7 +37,14 @@ def register_chat_stream_llm(fn: Callable[[list[dict[str, str]], float], Generat
     logger.info("LLM chat stream provider registered: %s", getattr(fn, "__name__", fn.__class__.__name__))
 
 
-async def call_llm(prompt: str, *, temperature: float = 0.3, max_retries: int = 2, model: str | None = None) -> str:
+async def call_llm(
+    prompt: str,
+    *,
+    temperature: float = 0.3,
+    max_retries: int = 2,
+    model: str | None = None,
+    task_type: str | None = None,
+) -> str:
     """Call LLM with a single prompt string. Non-blocking — runs in thread pool."""
     if _llm_callable is None:
         raise RuntimeError("LLM not registered. Call register_llm() first.")
@@ -44,12 +52,18 @@ async def call_llm(prompt: str, *, temperature: float = 0.3, max_retries: int = 
     last_exc: Exception | None = None
     for attempt in range(max_retries + 1):
         try:
-            return await asyncio.to_thread(_llm_callable, prompt, model)
+            return await asyncio.wait_for(
+                asyncio.to_thread(_llm_callable, prompt, resolve_model(model, task_type)),
+                timeout=90,
+            )
+        except asyncio.TimeoutError:
+            last_exc = TimeoutError(f"LLM call timed out after 90s (attempt {attempt + 1})")
+            logger.warning("LLM call attempt %d/%d timed out after 90s", attempt + 1, max_retries + 1)
         except Exception as exc:
             last_exc = exc
             logger.warning("LLM call attempt %d/%d failed: %s", attempt + 1, max_retries + 1, exc)
-            if attempt < max_retries:
-                await asyncio.sleep(0.5 * (attempt + 1))
+        if attempt < max_retries:
+            await asyncio.sleep(0.5 * (attempt + 1))
     raise RuntimeError(f"LLM call failed after {max_retries + 1} attempts") from last_exc
 
 
@@ -60,18 +74,26 @@ async def call_llm_chat(
     max_retries: int = 2,
     response_format: dict | None = None,
     model: str | None = None,
+    task_type: str | None = None,
 ) -> str:
     """Chat-style LLM call. Prefers chat provider, falls back to single-prompt."""
     if _chat_callable is not None:
+        resolved_model = resolve_model(model, task_type)
         last_exc: Exception | None = None
         for attempt in range(max_retries + 1):
             try:
-                return await asyncio.to_thread(_chat_callable, messages, temperature, model)
+                return await asyncio.wait_for(
+                    asyncio.to_thread(_chat_callable, messages, temperature, resolved_model),
+                    timeout=90,
+                )
+            except asyncio.TimeoutError:
+                last_exc = TimeoutError(f"LLM chat timed out after 90s (attempt {attempt + 1})")
+                logger.warning("LLM chat attempt %d/%d timed out after 90s", attempt + 1, max_retries + 1)
             except Exception as exc:
                 last_exc = exc
                 logger.warning("LLM chat attempt %d/%d failed: %s", attempt + 1, max_retries + 1, exc)
-                if attempt < max_retries:
-                    await asyncio.sleep(0.5 * (attempt + 1))
+            if attempt < max_retries:
+                await asyncio.sleep(0.5 * (attempt + 1))
         raise RuntimeError(f"LLM chat failed after {max_retries + 1} attempts") from last_exc
 
     # Fallback: flatten messages into a single prompt
@@ -80,7 +102,7 @@ async def call_llm_chat(
         flat = "\n\n".join(prompt_parts)
         if response_format:
             flat += f"\n\nRespond ONLY with valid JSON conforming to: {json.dumps(response_format)}"
-        return await call_llm(flat, temperature=temperature, max_retries=max_retries, model=model)
+        return await call_llm(flat, temperature=temperature, max_retries=max_retries, model=model, task_type=task_type)
 
     raise RuntimeError("No LLM provider registered.")
 
@@ -90,19 +112,22 @@ async def call_llm_chat_stream(
     *,
     temperature: float = 0.3,
     model: str | None = None,
+    task_type: str | None = None,
 ):
     """Real SSE streaming chat — yields text chunks as they arrive."""
     if _chat_stream_callable is None:
-        answer = await call_llm_chat(messages, temperature=temperature, max_retries=1, model=model)
+        answer = await call_llm_chat(messages, temperature=temperature, max_retries=1, model=model, task_type=task_type)
         yield answer
         return
 
     loop = asyncio.get_event_loop()
     queue: asyncio.Queue[str | None] = asyncio.Queue()
 
+    resolved_model = resolve_model(model, task_type)
+
     def _run():
         try:
-            for chunk in _chat_stream_callable(messages, temperature, model):
+            for chunk in _chat_stream_callable(messages, temperature, resolved_model):
                 loop.call_soon_threadsafe(queue.put_nowait, chunk)
         except Exception:
             pass
@@ -153,7 +178,7 @@ async def estimate_opponent_type(
     messages = _build_belief_prompt(player_role, opponent_role, observed_actions, context)
 
     try:
-        raw = await call_llm_chat(messages, temperature=0.3, max_retries=2)
+        raw = await call_llm_chat(messages, temperature=0.3, max_retries=2, task_type="belief")
         parsed = _parse_json_response(raw)
         return {
             "type_distribution": parsed.get("type_distribution", {}),

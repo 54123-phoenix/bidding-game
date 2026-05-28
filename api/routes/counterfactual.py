@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from fastapi import APIRouter
+from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 
 from counterfactual.engine import CounterfactualEngine
@@ -45,4 +45,4 @@ async def counterfactual(request: CounterfactualRequest):
 
         return {"status": "ok", "base": base_result.model_dump(), "counterfactual": report.model_dump()}
     except Exception as e:
-        return {"status": "error", "message": str(e)}
+        raise HTTPException(status_code=500, detail=str(e))

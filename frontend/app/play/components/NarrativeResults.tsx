@@ -63,7 +63,7 @@ function generateNarrative(
 
   return {
     title: "谈判破裂",
-    story: `双方始终未能弥合薪资差距。在博弈论框架下，这意味着贝叶斯纳什均衡落在了"不交易"的区域——双方的信息不对称成本太高，使得交易无法达成。`,
+    story: `双方始终未能弥合薪资差距。在简化策略响应框架下，这意味着交易区间没有重叠——双方的信息不对称成本太高，使得交易无法达成。`,
   };
 }
 
@@ -165,11 +165,15 @@ export default function NarrativeResults({
 
       {/* Story Narrative */}
       <motion.div
-        className="bg-slate-900 border border-slate-800 rounded-xl p-6"
+        className="surface-raised rounded-3xl p-6"
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.5 }}
       >
+        <div className="mb-3 flex flex-wrap items-center gap-2">
+          <span className="ai-chip rounded-full px-2 py-0.5 text-[10px] font-bold">AI 战术复盘</span>
+          <span className="strategy-chip rounded-full px-2 py-0.5 text-[10px] font-bold">可解释结果</span>
+        </div>
         <h2 className="text-sm font-semibold text-slate-300 mb-3">
           {narrative.title}
         </h2>
@@ -184,25 +188,25 @@ export default function NarrativeResults({
               博弈论分析
             </h3>
             <div className="grid grid-cols-2 gap-3 text-xs">
-              <div className="bg-slate-800/50 rounded-lg p-3">
+              <div className="rounded-lg border border-[var(--border-hairline)] bg-[var(--bg-canvas)]/40 p-3">
                 <span className="text-slate-500">均衡最优要价</span>
                 <div className="text-white font-mono mt-1">
                   {equilibrium.candidate_strategy?.opening_salary_ask || "—"}K
                 </div>
               </div>
-              <div className="bg-slate-800/50 rounded-lg p-3">
+              <div className="rounded-lg border border-[var(--border-hairline)] bg-[var(--bg-canvas)]/40 p-3">
                 <span className="text-slate-500">你的收益</span>
                 <div className="text-white font-mono mt-1">
                   {candidatePayoff.toFixed(3)}
                 </div>
               </div>
-              <div className="bg-slate-800/50 rounded-lg p-3">
+              <div className="rounded-lg border border-[var(--border-hairline)] bg-[var(--bg-canvas)]/40 p-3">
                 <span className="text-slate-500">均衡预期收益</span>
                 <div className="text-cyan-400 font-mono mt-1">
                   {(equilibrium.candidate_expected_payoff || 0).toFixed(3)}
                 </div>
               </div>
-              <div className="bg-slate-800/50 rounded-lg p-3">
+              <div className="rounded-lg border border-[var(--border-hairline)] bg-[var(--bg-canvas)]/40 p-3">
                 <span className="text-slate-500">信息不对称成本</span>
                 <div className="text-amber-400 font-mono mt-1">
                   {informationAsymmetryCost.toFixed(3)}
@@ -211,7 +215,7 @@ export default function NarrativeResults({
             </div>
             {equilibrium.converged && (
               <p className="text-[11px] text-slate-600 mt-2">
-                {equilibrium.solver_iterations} 次迭代收敛至纯策略贝叶斯纳什均衡
+                {equilibrium.solver_iterations} 次迭代形成简化策略响应结果
               </p>
             )}
           </div>
@@ -221,10 +225,10 @@ export default function NarrativeResults({
       {/* Recommendation */}
       {recommendation && (
         <motion.div
-          className={`border rounded-xl p-5 text-sm ${
+          className={`surface-base rounded-3xl p-5 text-sm ${
             isAccepted
-              ? "bg-emerald-950/20 border-emerald-800"
-              : "bg-red-950/20 border-red-800"
+              ? ""
+              : ""
           }`}
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -239,7 +243,7 @@ export default function NarrativeResults({
 
       {/* Quick Questions */}
       <motion.div
-        className="bg-slate-900 border border-slate-800 rounded-xl overflow-hidden"
+        className="surface-base overflow-hidden rounded-3xl"
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.8 }}

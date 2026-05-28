@@ -96,7 +96,7 @@ export default function ResultsGrid({
       {items.map((item) => (
         <motion.div
           key={item.label}
-          className="bg-[var(--bg-panel)] border border-[var(--border-hairline)] rounded-lg p-3 text-center"
+          className="surface-base rounded-2xl p-3 text-center"
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: item.delay }}

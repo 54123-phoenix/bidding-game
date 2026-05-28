@@ -1,184 +1,125 @@
 "use client";
 
-import { motion, AnimatePresence } from "framer-motion";
-import { useEffect, useState } from "react";
+import { AnimatePresence, motion } from "framer-motion";
+import { useEffect, useRef, useState } from "react";
 
-const PROGRESS_STEPS = [
-  { label: "解析场景信息", icon: "🔍" },
-  { label: "提取简历信号", icon: "📄" },
-  { label: "生成 HR 人格模型", icon: "🎭" },
-  { label: "初始化博弈引擎", icon: "⚙️" },
-  { label: "进入谈判场景", icon: "⚔️" },
-];
-
-const TIPS = [
-  "HR 的耐心值受简历信号强度影响，而非你的自信程度。",
-  "激进策略适合 HR 耐心高、岗位紧急的情况。",
-  "保守策略稳扎稳打，但可能错过溢价空间。",
-  "每轮报价都会消耗双方的耐心，谨慎出牌。",
-  "外部 Offer 是最强的谈判筹码，但使用时机很关键。",
-  "HR 也在评估你的稳定性，频繁跳槽信号会降低耐心。",
-];
+const CHIPS = ["ByteDance · Algorithm", "Tencent · Product", "Alibaba · Data", "Meituan · Backend"];
 
 interface LaunchOverlayProps {
   isActive: boolean;
 }
 
 export default function LaunchOverlay({ isActive }: LaunchOverlayProps) {
-  const [step, setStep] = useState(0);
-  const [tipIndex, setTipIndex] = useState(0);
+  const [phase, setPhase] = useState(0);
+  const [lineA, setLineA] = useState("");
+  const [lineB, setLineB] = useState("");
+  const [rightStatus, setRightStatus] = useState("");
+  const wasActiveRef = useRef(false);
 
   useEffect(() => {
     if (!isActive) {
-      setStep(0);
+      wasActiveRef.current = false;
       return;
     }
-    const interval = setInterval(() => {
-      setStep((s) => (s < PROGRESS_STEPS.length - 1 ? s + 1 : s));
-    }, 600);
-    return () => clearInterval(interval);
-  }, [isActive]);
+    const isNewActivation = !wasActiveRef.current;
+    wasActiveRef.current = true;
 
-  useEffect(() => {
-    if (!isActive) return;
-    const interval = setInterval(() => {
-      setTipIndex((i) => (i + 1) % TIPS.length);
-    }, 2500);
-    return () => clearInterval(interval);
+    const timers = [
+      window.setTimeout(() => {
+        if (isNewActivation) {
+          setLineA("");
+          setLineB("");
+          setRightStatus("");
+        }
+        setPhase(1);
+      }, 0),
+      window.setTimeout(() => {
+        setPhase(2);
+        typeInto("策略矩阵生成中...", setLineA, 32);
+        window.setTimeout(() => typeInto("对抗风格预测完毕...", setLineB, 32), 360);
+      }, 800),
+      window.setTimeout(() => {
+        setPhase(3);
+        typeInto("信用与风险大盘初始化成功 (28%)", setRightStatus, 24);
+      }, 1600),
+    ];
+    return () => timers.forEach(window.clearTimeout);
   }, [isActive]);
 
   return (
     <AnimatePresence>
       {isActive && (
         <motion.div
-          className="fixed inset-0 z-[100] flex flex-col items-center justify-center"
-          style={{ backgroundColor: "rgba(8, 10, 16, 0.97)" }}
+          className="fixed inset-0 z-[100] overflow-hidden bg-[#04060a]"
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
-          transition={{ duration: 0.4 }}
+          transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
         >
-          {/* Grid background */}
-          <div
-            className="absolute inset-0 opacity-[0.03]"
-            style={{
-              backgroundImage:
-                "linear-gradient(rgba(34,211,238,0.3) 1px, transparent 1px), linear-gradient(90deg, rgba(34,211,238,0.3) 1px, transparent 1px)",
-              backgroundSize: "40px 40px",
-            }}
-          />
-
-          {/* Scan line */}
-          <motion.div
-            className="absolute left-0 right-0 h-[2px]"
-            style={{
-              background:
-                "linear-gradient(90deg, transparent 0%, rgba(34,211,238,0.6) 50%, transparent 100%)",
-              boxShadow: "0 0 20px rgba(34,211,238,0.3)",
-            }}
-            initial={{ top: "0%" }}
-            animate={{ top: "100%" }}
-            transition={{
-              duration: 2,
-              repeat: Infinity,
-              ease: "linear",
-            }}
-          />
-
-          {/* Center content */}
-          <div className="relative z-10 flex flex-col items-center max-w-md w-full px-6">
-            {/* Title */}
-            <motion.h2
-              className="text-xl font-bold text-slate-200 mb-8 tracking-wide"
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.2 }}
-            >
-              系统初始化中
-            </motion.h2>
-
-            {/* Progress steps */}
-            <div className="w-full space-y-3 mb-8">
-              {PROGRESS_STEPS.map((s, i) => {
-                const isDone = i < step;
-                const isCurrent = i === step;
-                return (
-                  <motion.div
-                    key={s.label}
-                    className="flex items-center gap-3"
-                    initial={{ opacity: 0, x: -10 }}
-                    animate={{
-                      opacity: isDone || isCurrent ? 1 : 0.3,
-                      x: 0,
-                    }}
-                    transition={{ delay: i * 0.1 }}
-                  >
-                    <div
-                      className={`w-5 h-5 rounded-full flex items-center justify-center text-[10px] shrink-0 transition-all duration-300 ${
-                        isDone
-                          ? "bg-emerald-500/20 text-emerald-400 border border-emerald-500/30"
-                          : isCurrent
-                            ? "bg-cyan-500/20 text-cyan-400 border border-cyan-500/30"
-                            : "bg-slate-800 text-slate-600 border border-slate-700"
-                      }`}
-                    >
-                      {isDone ? "✓" : s.icon}
-                    </div>
-                    <span
-                      className={`text-sm transition-all duration-300 ${
-                        isCurrent
-                          ? "text-cyan-400 font-medium"
-                          : isDone
-                            ? "text-slate-400"
-                            : "text-slate-600"
-                      }`}
-                    >
-                      {s.label}
-                    </span>
-                    {isCurrent && (
-                      <motion.div
-                        className="ml-auto w-4 h-4 border-2 border-cyan-500/30 border-t-cyan-400 rounded-full"
-                        animate={{ rotate: 360 }}
-                        transition={{
-                          duration: 1,
-                          repeat: Infinity,
-                          ease: "linear",
-                        }}
-                      />
-                    )}
-                  </motion.div>
-                );
-              })}
-            </div>
-
-            {/* Progress bar */}
-            <div className="w-full h-1 bg-slate-800 rounded-full overflow-hidden mb-6">
-              <motion.div
-                className="h-full rounded-full bg-gradient-to-r from-cyan-500 to-blue-500"
-                initial={{ width: "0%" }}
-                animate={{
-                  width: `${((step + 1) / PROGRESS_STEPS.length) * 100}%`,
-                }}
-                transition={{ duration: 0.5, ease: "easeOut" }}
-              />
-            </div>
-
-            {/* Tip */}
-            <AnimatePresence mode="wait">
-              <motion.p
-                key={tipIndex}
-                className="text-xs text-slate-500 text-center leading-relaxed h-10"
-                initial={{ opacity: 0, y: 5 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -5 }}
-                transition={{ duration: 0.3 }}
-              >
-                {TIPS[tipIndex]}
-              </motion.p>
-            </AnimatePresence>
+          <div className="pointer-events-none absolute inset-0 quiet-grid opacity-[0.018]" />
+          <div className="absolute left-1/2 top-8 z-20 w-[min(760px,calc(100%-80px))] -translate-x-1/2 overflow-hidden text-center text-[13px] font-black tracking-[0.08em] text-[#00f3ff] [text-shadow:0_0_6px_rgba(0,243,255,0.6)] animate-[holo-breath_2.4s_ease-in-out_infinite]">
+            <span className="inline-block animate-[holo-marquee_9s_linear_infinite] whitespace-nowrap pl-[100%]">
+              [SYSTEM] 正在构建谈判策略沙盘 / Deploying Sandbox ... [SYSTEM] 正在构建谈判策略沙盘 / Deploying Sandbox ...
+            </span>
           </div>
+
+          <svg className="pointer-events-none absolute inset-0 z-[2] h-full w-full" viewBox="0 0 1440 820" preserveAspectRatio="none" aria-hidden="true">
+            <path className="holo-link-base" d="M260 420 C430 310, 515 540, 710 410" />
+            <path className="holo-link-base" d="M730 420 C910 300, 990 560, 1180 390" />
+            <path className="holo-link-energy" d="M260 420 C430 310, 515 540, 710 410" />
+            <path className="holo-link-energy [animation-delay:.42s]" d="M730 420 C910 300, 990 560, 1180 390" />
+          </svg>
+
+          <section className="relative z-[3] mx-auto grid min-h-screen w-[min(1180px,calc(100%-68px))] grid-cols-[300px_1fr_320px] items-center gap-6 pt-16">
+            <aside className={`holo-card ${phase >= 1 ? "is-active" : ""}`}>
+              <HoloHeader left="Case Files" right="01" />
+              <div className="grid gap-2.5 p-[18px]">
+                {CHIPS.map((chip, index) => (
+                  <div key={chip} className={`rounded-2xl border border-white/[0.04] bg-white/[0.025] px-4 py-3.5 font-bold text-white/70 ${phase >= 1 ? "scan-green" : ""}`} style={{ animationDelay: `${index * 90}ms` }}>
+                    {chip}
+                  </div>
+                ))}
+              </div>
+              <div className="absolute inset-x-[18px] bottom-[18px] min-h-10 border-t border-white/[0.04] pt-3.5 font-mono text-xs tracking-[0.05em] text-emerald-300/80">
+                {phase >= 1 ? "[PARSING FILES: 100%]" : ""}
+              </div>
+            </aside>
+
+            <section className={`holo-card ${phase >= 2 ? "is-active" : ""}`}>
+              <HoloHeader left="Main Status" right="Matrix" />
+              <div className="absolute left-1/2 top-[52%] h-[190px] w-[70%] -translate-x-1/2 -translate-y-1/2 rounded-3xl border border-cyan-300/15 bg-[linear-gradient(rgba(0,243,255,0.055)_1px,transparent_1px),linear-gradient(90deg,rgba(0,243,255,0.055)_1px,transparent_1px),rgba(0,243,255,0.025)] bg-[length:22px_22px] [transform:translate(-50%,-50%)_perspective(900px)_rotateX(62deg)]" />
+              <div className="absolute inset-x-5 bottom-6 grid gap-2 font-mono text-[13px] text-white/70">
+                <div className="min-h-[18px]">{lineA}</div>
+                <div className="min-h-[18px]">{lineB}</div>
+              </div>
+            </section>
+
+            <aside className={`holo-card ${phase >= 3 ? "is-active" : ""}`}>
+              <HoloHeader left="Signal Board" right="AI" />
+              <div className="relative mx-auto mt-12 h-[230px] w-[230px] rounded-full border border-white/[0.05] bg-[radial-gradient(circle,transparent_28%,rgba(255,255,255,0.03)_29%,transparent_30%,transparent_52%,rgba(255,255,255,0.025)_53%,transparent_54%),conic-gradient(from_0deg,rgba(0,243,255,0.18),transparent_24%,transparent_100%)] animate-[radar-sweep_2.8s_linear_infinite]">
+                <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 text-center font-black text-white/70">Risk<br />{phase >= 3 ? "28%" : "--"}</div>
+              </div>
+              <div className="absolute inset-x-[18px] bottom-[18px] text-[13px] leading-6 text-white/65">{rightStatus}</div>
+            </aside>
+          </section>
         </motion.div>
       )}
     </AnimatePresence>
   );
+}
+
+function HoloHeader({ left, right }: { left: string; right: string }) {
+  return (
+    <header className="flex items-center justify-between px-[18px] pb-2.5 pt-[18px] text-xs font-black uppercase tracking-[0.1em] text-white/55">
+      <span>{left}</span>
+      <span>{right}</span>
+    </header>
+  );
+}
+
+function typeInto(text: string, setter: (value: string) => void, speed: number) {
+  setter("");
+  [...text].forEach((char, index) => {
+    window.setTimeout(() => setter(text.slice(0, index + 1)), index * speed);
+  });
 }

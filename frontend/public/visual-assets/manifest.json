@@ -1,0 +1,1511 @@
+{
+  "assets": [
+    {
+      "theme": "negotiation",
+      "id": 1,
+      "path": "/visual-assets/negotiation-001.svg"
+    },
+    {
+      "theme": "negotiation",
+      "id": 2,
+      "path": "/visual-assets/negotiation-002.svg"
+    },
+    {
+      "theme": "negotiation",
+      "id": 3,
+      "path": "/visual-assets/negotiation-003.svg"
+    },
+    {
+      "theme": "negotiation",
+      "id": 4,
+      "path": "/visual-assets/negotiation-004.svg"
+    },
+    {
+      "theme": "negotiation",
+      "id": 5,
+      "path": "/visual-assets/negotiation-005.svg"
+    },
+    {
+      "theme": "negotiation",
+      "id": 6,
+      "path": "/visual-assets/negotiation-006.svg"
+    },
+    {
+      "theme": "negotiation",
+      "id": 7,
+      "path": "/visual-assets/negotiation-007.svg"
+    },
+    {
+      "theme": "negotiation",
+      "id": 8,
+      "path": "/visual-assets/negotiation-008.svg"
+    },
+    {
+      "theme": "negotiation",
+      "id": 9,
+      "path": "/visual-assets/negotiation-009.svg"
+    },
+    {
+      "theme": "negotiation",
+      "id": 10,
+      "path": "/visual-assets/negotiation-010.svg"
+    },
+    {
+      "theme": "negotiation",
+      "id": 11,
+      "path": "/visual-assets/negotiation-011.svg"
+    },
+    {
+      "theme": "negotiation",
+      "id": 12,
+      "path": "/visual-assets/negotiation-012.svg"
+    },
+    {
+      "theme": "negotiation",
+      "id": 13,
+      "path": "/visual-assets/negotiation-013.svg"
+    },
+    {
+      "theme": "negotiation",
+      "id": 14,
+      "path": "/visual-assets/negotiation-014.svg"
+    },
+    {
+      "theme": "negotiation",
+      "id": 15,
+      "path": "/visual-assets/negotiation-015.svg"
+    },
+    {
+      "theme": "negotiation",
+      "id": 16,
+      "path": "/visual-assets/negotiation-016.svg"
+    },
+    {
+      "theme": "negotiation",
+      "id": 17,
+      "path": "/visual-assets/negotiation-017.svg"
+    },
+    {
+      "theme": "negotiation",
+      "id": 18,
+      "path": "/visual-assets/negotiation-018.svg"
+    },
+    {
+      "theme": "negotiation",
+      "id": 19,
+      "path": "/visual-assets/negotiation-019.svg"
+    },
+    {
+      "theme": "negotiation",
+      "id": 20,
+      "path": "/visual-assets/negotiation-020.svg"
+    },
+    {
+      "theme": "negotiation",
+      "id": 21,
+      "path": "/visual-assets/negotiation-021.svg"
+    },
+    {
+      "theme": "negotiation",
+      "id": 22,
+      "path": "/visual-assets/negotiation-022.svg"
+    },
+    {
+      "theme": "negotiation",
+      "id": 23,
+      "path": "/visual-assets/negotiation-023.svg"
+    },
+    {
+      "theme": "negotiation",
+      "id": 24,
+      "path": "/visual-assets/negotiation-024.svg"
+    },
+    {
+      "theme": "negotiation",
+      "id": 25,
+      "path": "/visual-assets/negotiation-025.svg"
+    },
+    {
+      "theme": "negotiation",
+      "id": 26,
+      "path": "/visual-assets/negotiation-026.svg"
+    },
+    {
+      "theme": "negotiation",
+      "id": 27,
+      "path": "/visual-assets/negotiation-027.svg"
+    },
+    {
+      "theme": "negotiation",
+      "id": 28,
+      "path": "/visual-assets/negotiation-028.svg"
+    },
+    {
+      "theme": "negotiation",
+      "id": 29,
+      "path": "/visual-assets/negotiation-029.svg"
+    },
+    {
+      "theme": "negotiation",
+      "id": 30,
+      "path": "/visual-assets/negotiation-030.svg"
+    },
+    {
+      "theme": "negotiation",
+      "id": 31,
+      "path": "/visual-assets/negotiation-031.svg"
+    },
+    {
+      "theme": "negotiation",
+      "id": 32,
+      "path": "/visual-assets/negotiation-032.svg"
+    },
+    {
+      "theme": "negotiation",
+      "id": 33,
+      "path": "/visual-assets/negotiation-033.svg"
+    },
+    {
+      "theme": "negotiation",
+      "id": 34,
+      "path": "/visual-assets/negotiation-034.svg"
+    },
+    {
+      "theme": "negotiation",
+      "id": 35,
+      "path": "/visual-assets/negotiation-035.svg"
+    },
+    {
+      "theme": "negotiation",
+      "id": 36,
+      "path": "/visual-assets/negotiation-036.svg"
+    },
+    {
+      "theme": "negotiation",
+      "id": 37,
+      "path": "/visual-assets/negotiation-037.svg"
+    },
+    {
+      "theme": "negotiation",
+      "id": 38,
+      "path": "/visual-assets/negotiation-038.svg"
+    },
+    {
+      "theme": "negotiation",
+      "id": 39,
+      "path": "/visual-assets/negotiation-039.svg"
+    },
+    {
+      "theme": "negotiation",
+      "id": 40,
+      "path": "/visual-assets/negotiation-040.svg"
+    },
+    {
+      "theme": "negotiation",
+      "id": 41,
+      "path": "/visual-assets/negotiation-041.svg"
+    },
+    {
+      "theme": "negotiation",
+      "id": 42,
+      "path": "/visual-assets/negotiation-042.svg"
+    },
+    {
+      "theme": "negotiation",
+      "id": 43,
+      "path": "/visual-assets/negotiation-043.svg"
+    },
+    {
+      "theme": "negotiation",
+      "id": 44,
+      "path": "/visual-assets/negotiation-044.svg"
+    },
+    {
+      "theme": "negotiation",
+      "id": 45,
+      "path": "/visual-assets/negotiation-045.svg"
+    },
+    {
+      "theme": "negotiation",
+      "id": 46,
+      "path": "/visual-assets/negotiation-046.svg"
+    },
+    {
+      "theme": "negotiation",
+      "id": 47,
+      "path": "/visual-assets/negotiation-047.svg"
+    },
+    {
+      "theme": "negotiation",
+      "id": 48,
+      "path": "/visual-assets/negotiation-048.svg"
+    },
+    {
+      "theme": "negotiation",
+      "id": 49,
+      "path": "/visual-assets/negotiation-049.svg"
+    },
+    {
+      "theme": "negotiation",
+      "id": 50,
+      "path": "/visual-assets/negotiation-050.svg"
+    },
+    {
+      "theme": "negotiation",
+      "id": 51,
+      "path": "/visual-assets/negotiation-051.svg"
+    },
+    {
+      "theme": "negotiation",
+      "id": 52,
+      "path": "/visual-assets/negotiation-052.svg"
+    },
+    {
+      "theme": "negotiation",
+      "id": 53,
+      "path": "/visual-assets/negotiation-053.svg"
+    },
+    {
+      "theme": "negotiation",
+      "id": 54,
+      "path": "/visual-assets/negotiation-054.svg"
+    },
+    {
+      "theme": "negotiation",
+      "id": 55,
+      "path": "/visual-assets/negotiation-055.svg"
+    },
+    {
+      "theme": "negotiation",
+      "id": 56,
+      "path": "/visual-assets/negotiation-056.svg"
+    },
+    {
+      "theme": "negotiation",
+      "id": 57,
+      "path": "/visual-assets/negotiation-057.svg"
+    },
+    {
+      "theme": "negotiation",
+      "id": 58,
+      "path": "/visual-assets/negotiation-058.svg"
+    },
+    {
+      "theme": "negotiation",
+      "id": 59,
+      "path": "/visual-assets/negotiation-059.svg"
+    },
+    {
+      "theme": "negotiation",
+      "id": 60,
+      "path": "/visual-assets/negotiation-060.svg"
+    },
+    {
+      "theme": "intelligence",
+      "id": 1,
+      "path": "/visual-assets/intelligence-001.svg"
+    },
+    {
+      "theme": "intelligence",
+      "id": 2,
+      "path": "/visual-assets/intelligence-002.svg"
+    },
+    {
+      "theme": "intelligence",
+      "id": 3,
+      "path": "/visual-assets/intelligence-003.svg"
+    },
+    {
+      "theme": "intelligence",
+      "id": 4,
+      "path": "/visual-assets/intelligence-004.svg"
+    },
+    {
+      "theme": "intelligence",
+      "id": 5,
+      "path": "/visual-assets/intelligence-005.svg"
+    },
+    {
+      "theme": "intelligence",
+      "id": 6,
+      "path": "/visual-assets/intelligence-006.svg"
+    },
+    {
+      "theme": "intelligence",
+      "id": 7,
+      "path": "/visual-assets/intelligence-007.svg"
+    },
+    {
+      "theme": "intelligence",
+      "id": 8,
+      "path": "/visual-assets/intelligence-008.svg"
+    },
+    {
+      "theme": "intelligence",
+      "id": 9,
+      "path": "/visual-assets/intelligence-009.svg"
+    },
+    {
+      "theme": "intelligence",
+      "id": 10,
+      "path": "/visual-assets/intelligence-010.svg"
+    },
+    {
+      "theme": "intelligence",
+      "id": 11,
+      "path": "/visual-assets/intelligence-011.svg"
+    },
+    {
+      "theme": "intelligence",
+      "id": 12,
+      "path": "/visual-assets/intelligence-012.svg"
+    },
+    {
+      "theme": "intelligence",
+      "id": 13,
+      "path": "/visual-assets/intelligence-013.svg"
+    },
+    {
+      "theme": "intelligence",
+      "id": 14,
+      "path": "/visual-assets/intelligence-014.svg"
+    },
+    {
+      "theme": "intelligence",
+      "id": 15,
+      "path": "/visual-assets/intelligence-015.svg"
+    },
+    {
+      "theme": "intelligence",
+      "id": 16,
+      "path": "/visual-assets/intelligence-016.svg"
+    },
+    {
+      "theme": "intelligence",
+      "id": 17,
+      "path": "/visual-assets/intelligence-017.svg"
+    },
+    {
+      "theme": "intelligence",
+      "id": 18,
+      "path": "/visual-assets/intelligence-018.svg"
+    },
+    {
+      "theme": "intelligence",
+      "id": 19,
+      "path": "/visual-assets/intelligence-019.svg"
+    },
+    {
+      "theme": "intelligence",
+      "id": 20,
+      "path": "/visual-assets/intelligence-020.svg"
+    },
+    {
+      "theme": "intelligence",
+      "id": 21,
+      "path": "/visual-assets/intelligence-021.svg"
+    },
+    {
+      "theme": "intelligence",
+      "id": 22,
+      "path": "/visual-assets/intelligence-022.svg"
+    },
+    {
+      "theme": "intelligence",
+      "id": 23,
+      "path": "/visual-assets/intelligence-023.svg"
+    },
+    {
+      "theme": "intelligence",
+      "id": 24,
+      "path": "/visual-assets/intelligence-024.svg"
+    },
+    {
+      "theme": "intelligence",
+      "id": 25,
+      "path": "/visual-assets/intelligence-025.svg"
+    },
+    {
+      "theme": "intelligence",
+      "id": 26,
+      "path": "/visual-assets/intelligence-026.svg"
+    },
+    {
+      "theme": "intelligence",
+      "id": 27,
+      "path": "/visual-assets/intelligence-027.svg"
+    },
+    {
+      "theme": "intelligence",
+      "id": 28,
+      "path": "/visual-assets/intelligence-028.svg"
+    },
+    {
+      "theme": "intelligence",
+      "id": 29,
+      "path": "/visual-assets/intelligence-029.svg"
+    },
+    {
+      "theme": "intelligence",
+      "id": 30,
+      "path": "/visual-assets/intelligence-030.svg"
+    },
+    {
+      "theme": "intelligence",
+      "id": 31,
+      "path": "/visual-assets/intelligence-031.svg"
+    },
+    {
+      "theme": "intelligence",
+      "id": 32,
+      "path": "/visual-assets/intelligence-032.svg"
+    },
+    {
+      "theme": "intelligence",
+      "id": 33,
+      "path": "/visual-assets/intelligence-033.svg"
+    },
+    {
+      "theme": "intelligence",
+      "id": 34,
+      "path": "/visual-assets/intelligence-034.svg"
+    },
+    {
+      "theme": "intelligence",
+      "id": 35,
+      "path": "/visual-assets/intelligence-035.svg"
+    },
+    {
+      "theme": "intelligence",
+      "id": 36,
+      "path": "/visual-assets/intelligence-036.svg"
+    },
+    {
+      "theme": "intelligence",
+      "id": 37,
+      "path": "/visual-assets/intelligence-037.svg"
+    },
+    {
+      "theme": "intelligence",
+      "id": 38,
+      "path": "/visual-assets/intelligence-038.svg"
+    },
+    {
+      "theme": "intelligence",
+      "id": 39,
+      "path": "/visual-assets/intelligence-039.svg"
+    },
+    {
+      "theme": "intelligence",
+      "id": 40,
+      "path": "/visual-assets/intelligence-040.svg"
+    },
+    {
+      "theme": "intelligence",
+      "id": 41,
+      "path": "/visual-assets/intelligence-041.svg"
+    },
+    {
+      "theme": "intelligence",
+      "id": 42,
+      "path": "/visual-assets/intelligence-042.svg"
+    },
+    {
+      "theme": "intelligence",
+      "id": 43,
+      "path": "/visual-assets/intelligence-043.svg"
+    },
+    {
+      "theme": "intelligence",
+      "id": 44,
+      "path": "/visual-assets/intelligence-044.svg"
+    },
+    {
+      "theme": "intelligence",
+      "id": 45,
+      "path": "/visual-assets/intelligence-045.svg"
+    },
+    {
+      "theme": "intelligence",
+      "id": 46,
+      "path": "/visual-assets/intelligence-046.svg"
+    },
+    {
+      "theme": "intelligence",
+      "id": 47,
+      "path": "/visual-assets/intelligence-047.svg"
+    },
+    {
+      "theme": "intelligence",
+      "id": 48,
+      "path": "/visual-assets/intelligence-048.svg"
+    },
+    {
+      "theme": "intelligence",
+      "id": 49,
+      "path": "/visual-assets/intelligence-049.svg"
+    },
+    {
+      "theme": "intelligence",
+      "id": 50,
+      "path": "/visual-assets/intelligence-050.svg"
+    },
+    {
+      "theme": "intelligence",
+      "id": 51,
+      "path": "/visual-assets/intelligence-051.svg"
+    },
+    {
+      "theme": "intelligence",
+      "id": 52,
+      "path": "/visual-assets/intelligence-052.svg"
+    },
+    {
+      "theme": "intelligence",
+      "id": 53,
+      "path": "/visual-assets/intelligence-053.svg"
+    },
+    {
+      "theme": "intelligence",
+      "id": 54,
+      "path": "/visual-assets/intelligence-054.svg"
+    },
+    {
+      "theme": "intelligence",
+      "id": 55,
+      "path": "/visual-assets/intelligence-055.svg"
+    },
+    {
+      "theme": "intelligence",
+      "id": 56,
+      "path": "/visual-assets/intelligence-056.svg"
+    },
+    {
+      "theme": "intelligence",
+      "id": 57,
+      "path": "/visual-assets/intelligence-057.svg"
+    },
+    {
+      "theme": "intelligence",
+      "id": 58,
+      "path": "/visual-assets/intelligence-058.svg"
+    },
+    {
+      "theme": "intelligence",
+      "id": 59,
+      "path": "/visual-assets/intelligence-059.svg"
+    },
+    {
+      "theme": "intelligence",
+      "id": 60,
+      "path": "/visual-assets/intelligence-060.svg"
+    },
+    {
+      "theme": "hr-mind",
+      "id": 1,
+      "path": "/visual-assets/hr-mind-001.svg"
+    },
+    {
+      "theme": "hr-mind",
+      "id": 2,
+      "path": "/visual-assets/hr-mind-002.svg"
+    },
+    {
+      "theme": "hr-mind",
+      "id": 3,
+      "path": "/visual-assets/hr-mind-003.svg"
+    },
+    {
+      "theme": "hr-mind",
+      "id": 4,
+      "path": "/visual-assets/hr-mind-004.svg"
+    },
+    {
+      "theme": "hr-mind",
+      "id": 5,
+      "path": "/visual-assets/hr-mind-005.svg"
+    },
+    {
+      "theme": "hr-mind",
+      "id": 6,
+      "path": "/visual-assets/hr-mind-006.svg"
+    },
+    {
+      "theme": "hr-mind",
+      "id": 7,
+      "path": "/visual-assets/hr-mind-007.svg"
+    },
+    {
+      "theme": "hr-mind",
+      "id": 8,
+      "path": "/visual-assets/hr-mind-008.svg"
+    },
+    {
+      "theme": "hr-mind",
+      "id": 9,
+      "path": "/visual-assets/hr-mind-009.svg"
+    },
+    {
+      "theme": "hr-mind",
+      "id": 10,
+      "path": "/visual-assets/hr-mind-010.svg"
+    },
+    {
+      "theme": "hr-mind",
+      "id": 11,
+      "path": "/visual-assets/hr-mind-011.svg"
+    },
+    {
+      "theme": "hr-mind",
+      "id": 12,
+      "path": "/visual-assets/hr-mind-012.svg"
+    },
+    {
+      "theme": "hr-mind",
+      "id": 13,
+      "path": "/visual-assets/hr-mind-013.svg"
+    },
+    {
+      "theme": "hr-mind",
+      "id": 14,
+      "path": "/visual-assets/hr-mind-014.svg"
+    },
+    {
+      "theme": "hr-mind",
+      "id": 15,
+      "path": "/visual-assets/hr-mind-015.svg"
+    },
+    {
+      "theme": "hr-mind",
+      "id": 16,
+      "path": "/visual-assets/hr-mind-016.svg"
+    },
+    {
+      "theme": "hr-mind",
+      "id": 17,
+      "path": "/visual-assets/hr-mind-017.svg"
+    },
+    {
+      "theme": "hr-mind",
+      "id": 18,
+      "path": "/visual-assets/hr-mind-018.svg"
+    },
+    {
+      "theme": "hr-mind",
+      "id": 19,
+      "path": "/visual-assets/hr-mind-019.svg"
+    },
+    {
+      "theme": "hr-mind",
+      "id": 20,
+      "path": "/visual-assets/hr-mind-020.svg"
+    },
+    {
+      "theme": "hr-mind",
+      "id": 21,
+      "path": "/visual-assets/hr-mind-021.svg"
+    },
+    {
+      "theme": "hr-mind",
+      "id": 22,
+      "path": "/visual-assets/hr-mind-022.svg"
+    },
+    {
+      "theme": "hr-mind",
+      "id": 23,
+      "path": "/visual-assets/hr-mind-023.svg"
+    },
+    {
+      "theme": "hr-mind",
+      "id": 24,
+      "path": "/visual-assets/hr-mind-024.svg"
+    },
+    {
+      "theme": "hr-mind",
+      "id": 25,
+      "path": "/visual-assets/hr-mind-025.svg"
+    },
+    {
+      "theme": "hr-mind",
+      "id": 26,
+      "path": "/visual-assets/hr-mind-026.svg"
+    },
+    {
+      "theme": "hr-mind",
+      "id": 27,
+      "path": "/visual-assets/hr-mind-027.svg"
+    },
+    {
+      "theme": "hr-mind",
+      "id": 28,
+      "path": "/visual-assets/hr-mind-028.svg"
+    },
+    {
+      "theme": "hr-mind",
+      "id": 29,
+      "path": "/visual-assets/hr-mind-029.svg"
+    },
+    {
+      "theme": "hr-mind",
+      "id": 30,
+      "path": "/visual-assets/hr-mind-030.svg"
+    },
+    {
+      "theme": "hr-mind",
+      "id": 31,
+      "path": "/visual-assets/hr-mind-031.svg"
+    },
+    {
+      "theme": "hr-mind",
+      "id": 32,
+      "path": "/visual-assets/hr-mind-032.svg"
+    },
+    {
+      "theme": "hr-mind",
+      "id": 33,
+      "path": "/visual-assets/hr-mind-033.svg"
+    },
+    {
+      "theme": "hr-mind",
+      "id": 34,
+      "path": "/visual-assets/hr-mind-034.svg"
+    },
+    {
+      "theme": "hr-mind",
+      "id": 35,
+      "path": "/visual-assets/hr-mind-035.svg"
+    },
+    {
+      "theme": "hr-mind",
+      "id": 36,
+      "path": "/visual-assets/hr-mind-036.svg"
+    },
+    {
+      "theme": "hr-mind",
+      "id": 37,
+      "path": "/visual-assets/hr-mind-037.svg"
+    },
+    {
+      "theme": "hr-mind",
+      "id": 38,
+      "path": "/visual-assets/hr-mind-038.svg"
+    },
+    {
+      "theme": "hr-mind",
+      "id": 39,
+      "path": "/visual-assets/hr-mind-039.svg"
+    },
+    {
+      "theme": "hr-mind",
+      "id": 40,
+      "path": "/visual-assets/hr-mind-040.svg"
+    },
+    {
+      "theme": "hr-mind",
+      "id": 41,
+      "path": "/visual-assets/hr-mind-041.svg"
+    },
+    {
+      "theme": "hr-mind",
+      "id": 42,
+      "path": "/visual-assets/hr-mind-042.svg"
+    },
+    {
+      "theme": "hr-mind",
+      "id": 43,
+      "path": "/visual-assets/hr-mind-043.svg"
+    },
+    {
+      "theme": "hr-mind",
+      "id": 44,
+      "path": "/visual-assets/hr-mind-044.svg"
+    },
+    {
+      "theme": "hr-mind",
+      "id": 45,
+      "path": "/visual-assets/hr-mind-045.svg"
+    },
+    {
+      "theme": "hr-mind",
+      "id": 46,
+      "path": "/visual-assets/hr-mind-046.svg"
+    },
+    {
+      "theme": "hr-mind",
+      "id": 47,
+      "path": "/visual-assets/hr-mind-047.svg"
+    },
+    {
+      "theme": "hr-mind",
+      "id": 48,
+      "path": "/visual-assets/hr-mind-048.svg"
+    },
+    {
+      "theme": "hr-mind",
+      "id": 49,
+      "path": "/visual-assets/hr-mind-049.svg"
+    },
+    {
+      "theme": "hr-mind",
+      "id": 50,
+      "path": "/visual-assets/hr-mind-050.svg"
+    },
+    {
+      "theme": "hr-mind",
+      "id": 51,
+      "path": "/visual-assets/hr-mind-051.svg"
+    },
+    {
+      "theme": "hr-mind",
+      "id": 52,
+      "path": "/visual-assets/hr-mind-052.svg"
+    },
+    {
+      "theme": "hr-mind",
+      "id": 53,
+      "path": "/visual-assets/hr-mind-053.svg"
+    },
+    {
+      "theme": "hr-mind",
+      "id": 54,
+      "path": "/visual-assets/hr-mind-054.svg"
+    },
+    {
+      "theme": "hr-mind",
+      "id": 55,
+      "path": "/visual-assets/hr-mind-055.svg"
+    },
+    {
+      "theme": "hr-mind",
+      "id": 56,
+      "path": "/visual-assets/hr-mind-056.svg"
+    },
+    {
+      "theme": "hr-mind",
+      "id": 57,
+      "path": "/visual-assets/hr-mind-057.svg"
+    },
+    {
+      "theme": "hr-mind",
+      "id": 58,
+      "path": "/visual-assets/hr-mind-058.svg"
+    },
+    {
+      "theme": "hr-mind",
+      "id": 59,
+      "path": "/visual-assets/hr-mind-059.svg"
+    },
+    {
+      "theme": "hr-mind",
+      "id": 60,
+      "path": "/visual-assets/hr-mind-060.svg"
+    },
+    {
+      "theme": "market",
+      "id": 1,
+      "path": "/visual-assets/market-001.svg"
+    },
+    {
+      "theme": "market",
+      "id": 2,
+      "path": "/visual-assets/market-002.svg"
+    },
+    {
+      "theme": "market",
+      "id": 3,
+      "path": "/visual-assets/market-003.svg"
+    },
+    {
+      "theme": "market",
+      "id": 4,
+      "path": "/visual-assets/market-004.svg"
+    },
+    {
+      "theme": "market",
+      "id": 5,
+      "path": "/visual-assets/market-005.svg"
+    },
+    {
+      "theme": "market",
+      "id": 6,
+      "path": "/visual-assets/market-006.svg"
+    },
+    {
+      "theme": "market",
+      "id": 7,
+      "path": "/visual-assets/market-007.svg"
+    },
+    {
+      "theme": "market",
+      "id": 8,
+      "path": "/visual-assets/market-008.svg"
+    },
+    {
+      "theme": "market",
+      "id": 9,
+      "path": "/visual-assets/market-009.svg"
+    },
+    {
+      "theme": "market",
+      "id": 10,
+      "path": "/visual-assets/market-010.svg"
+    },
+    {
+      "theme": "market",
+      "id": 11,
+      "path": "/visual-assets/market-011.svg"
+    },
+    {
+      "theme": "market",
+      "id": 12,
+      "path": "/visual-assets/market-012.svg"
+    },
+    {
+      "theme": "market",
+      "id": 13,
+      "path": "/visual-assets/market-013.svg"
+    },
+    {
+      "theme": "market",
+      "id": 14,
+      "path": "/visual-assets/market-014.svg"
+    },
+    {
+      "theme": "market",
+      "id": 15,
+      "path": "/visual-assets/market-015.svg"
+    },
+    {
+      "theme": "market",
+      "id": 16,
+      "path": "/visual-assets/market-016.svg"
+    },
+    {
+      "theme": "market",
+      "id": 17,
+      "path": "/visual-assets/market-017.svg"
+    },
+    {
+      "theme": "market",
+      "id": 18,
+      "path": "/visual-assets/market-018.svg"
+    },
+    {
+      "theme": "market",
+      "id": 19,
+      "path": "/visual-assets/market-019.svg"
+    },
+    {
+      "theme": "market",
+      "id": 20,
+      "path": "/visual-assets/market-020.svg"
+    },
+    {
+      "theme": "market",
+      "id": 21,
+      "path": "/visual-assets/market-021.svg"
+    },
+    {
+      "theme": "market",
+      "id": 22,
+      "path": "/visual-assets/market-022.svg"
+    },
+    {
+      "theme": "market",
+      "id": 23,
+      "path": "/visual-assets/market-023.svg"
+    },
+    {
+      "theme": "market",
+      "id": 24,
+      "path": "/visual-assets/market-024.svg"
+    },
+    {
+      "theme": "market",
+      "id": 25,
+      "path": "/visual-assets/market-025.svg"
+    },
+    {
+      "theme": "market",
+      "id": 26,
+      "path": "/visual-assets/market-026.svg"
+    },
+    {
+      "theme": "market",
+      "id": 27,
+      "path": "/visual-assets/market-027.svg"
+    },
+    {
+      "theme": "market",
+      "id": 28,
+      "path": "/visual-assets/market-028.svg"
+    },
+    {
+      "theme": "market",
+      "id": 29,
+      "path": "/visual-assets/market-029.svg"
+    },
+    {
+      "theme": "market",
+      "id": 30,
+      "path": "/visual-assets/market-030.svg"
+    },
+    {
+      "theme": "market",
+      "id": 31,
+      "path": "/visual-assets/market-031.svg"
+    },
+    {
+      "theme": "market",
+      "id": 32,
+      "path": "/visual-assets/market-032.svg"
+    },
+    {
+      "theme": "market",
+      "id": 33,
+      "path": "/visual-assets/market-033.svg"
+    },
+    {
+      "theme": "market",
+      "id": 34,
+      "path": "/visual-assets/market-034.svg"
+    },
+    {
+      "theme": "market",
+      "id": 35,
+      "path": "/visual-assets/market-035.svg"
+    },
+    {
+      "theme": "market",
+      "id": 36,
+      "path": "/visual-assets/market-036.svg"
+    },
+    {
+      "theme": "market",
+      "id": 37,
+      "path": "/visual-assets/market-037.svg"
+    },
+    {
+      "theme": "market",
+      "id": 38,
+      "path": "/visual-assets/market-038.svg"
+    },
+    {
+      "theme": "market",
+      "id": 39,
+      "path": "/visual-assets/market-039.svg"
+    },
+    {
+      "theme": "market",
+      "id": 40,
+      "path": "/visual-assets/market-040.svg"
+    },
+    {
+      "theme": "market",
+      "id": 41,
+      "path": "/visual-assets/market-041.svg"
+    },
+    {
+      "theme": "market",
+      "id": 42,
+      "path": "/visual-assets/market-042.svg"
+    },
+    {
+      "theme": "market",
+      "id": 43,
+      "path": "/visual-assets/market-043.svg"
+    },
+    {
+      "theme": "market",
+      "id": 44,
+      "path": "/visual-assets/market-044.svg"
+    },
+    {
+      "theme": "market",
+      "id": 45,
+      "path": "/visual-assets/market-045.svg"
+    },
+    {
+      "theme": "market",
+      "id": 46,
+      "path": "/visual-assets/market-046.svg"
+    },
+    {
+      "theme": "market",
+      "id": 47,
+      "path": "/visual-assets/market-047.svg"
+    },
+    {
+      "theme": "market",
+      "id": 48,
+      "path": "/visual-assets/market-048.svg"
+    },
+    {
+      "theme": "market",
+      "id": 49,
+      "path": "/visual-assets/market-049.svg"
+    },
+    {
+      "theme": "market",
+      "id": 50,
+      "path": "/visual-assets/market-050.svg"
+    },
+    {
+      "theme": "market",
+      "id": 51,
+      "path": "/visual-assets/market-051.svg"
+    },
+    {
+      "theme": "market",
+      "id": 52,
+      "path": "/visual-assets/market-052.svg"
+    },
+    {
+      "theme": "market",
+      "id": 53,
+      "path": "/visual-assets/market-053.svg"
+    },
+    {
+      "theme": "market",
+      "id": 54,
+      "path": "/visual-assets/market-054.svg"
+    },
+    {
+      "theme": "market",
+      "id": 55,
+      "path": "/visual-assets/market-055.svg"
+    },
+    {
+      "theme": "market",
+      "id": 56,
+      "path": "/visual-assets/market-056.svg"
+    },
+    {
+      "theme": "market",
+      "id": 57,
+      "path": "/visual-assets/market-057.svg"
+    },
+    {
+      "theme": "market",
+      "id": 58,
+      "path": "/visual-assets/market-058.svg"
+    },
+    {
+      "theme": "market",
+      "id": 59,
+      "path": "/visual-assets/market-059.svg"
+    },
+    {
+      "theme": "market",
+      "id": 60,
+      "path": "/visual-assets/market-060.svg"
+    },
+    {
+      "theme": "debrief",
+      "id": 1,
+      "path": "/visual-assets/debrief-001.svg"
+    },
+    {
+      "theme": "debrief",
+      "id": 2,
+      "path": "/visual-assets/debrief-002.svg"
+    },
+    {
+      "theme": "debrief",
+      "id": 3,
+      "path": "/visual-assets/debrief-003.svg"
+    },
+    {
+      "theme": "debrief",
+      "id": 4,
+      "path": "/visual-assets/debrief-004.svg"
+    },
+    {
+      "theme": "debrief",
+      "id": 5,
+      "path": "/visual-assets/debrief-005.svg"
+    },
+    {
+      "theme": "debrief",
+      "id": 6,
+      "path": "/visual-assets/debrief-006.svg"
+    },
+    {
+      "theme": "debrief",
+      "id": 7,
+      "path": "/visual-assets/debrief-007.svg"
+    },
+    {
+      "theme": "debrief",
+      "id": 8,
+      "path": "/visual-assets/debrief-008.svg"
+    },
+    {
+      "theme": "debrief",
+      "id": 9,
+      "path": "/visual-assets/debrief-009.svg"
+    },
+    {
+      "theme": "debrief",
+      "id": 10,
+      "path": "/visual-assets/debrief-010.svg"
+    },
+    {
+      "theme": "debrief",
+      "id": 11,
+      "path": "/visual-assets/debrief-011.svg"
+    },
+    {
+      "theme": "debrief",
+      "id": 12,
+      "path": "/visual-assets/debrief-012.svg"
+    },
+    {
+      "theme": "debrief",
+      "id": 13,
+      "path": "/visual-assets/debrief-013.svg"
+    },
+    {
+      "theme": "debrief",
+      "id": 14,
+      "path": "/visual-assets/debrief-014.svg"
+    },
+    {
+      "theme": "debrief",
+      "id": 15,
+      "path": "/visual-assets/debrief-015.svg"
+    },
+    {
+      "theme": "debrief",
+      "id": 16,
+      "path": "/visual-assets/debrief-016.svg"
+    },
+    {
+      "theme": "debrief",
+      "id": 17,
+      "path": "/visual-assets/debrief-017.svg"
+    },
+    {
+      "theme": "debrief",
+      "id": 18,
+      "path": "/visual-assets/debrief-018.svg"
+    },
+    {
+      "theme": "debrief",
+      "id": 19,
+      "path": "/visual-assets/debrief-019.svg"
+    },
+    {
+      "theme": "debrief",
+      "id": 20,
+      "path": "/visual-assets/debrief-020.svg"
+    },
+    {
+      "theme": "debrief",
+      "id": 21,
+      "path": "/visual-assets/debrief-021.svg"
+    },
+    {
+      "theme": "debrief",
+      "id": 22,
+      "path": "/visual-assets/debrief-022.svg"
+    },
+    {
+      "theme": "debrief",
+      "id": 23,
+      "path": "/visual-assets/debrief-023.svg"
+    },
+    {
+      "theme": "debrief",
+      "id": 24,
+      "path": "/visual-assets/debrief-024.svg"
+    },
+    {
+      "theme": "debrief",
+      "id": 25,
+      "path": "/visual-assets/debrief-025.svg"
+    },
+    {
+      "theme": "debrief",
+      "id": 26,
+      "path": "/visual-assets/debrief-026.svg"
+    },
+    {
+      "theme": "debrief",
+      "id": 27,
+      "path": "/visual-assets/debrief-027.svg"
+    },
+    {
+      "theme": "debrief",
+      "id": 28,
+      "path": "/visual-assets/debrief-028.svg"
+    },
+    {
+      "theme": "debrief",
+      "id": 29,
+      "path": "/visual-assets/debrief-029.svg"
+    },
+    {
+      "theme": "debrief",
+      "id": 30,
+      "path": "/visual-assets/debrief-030.svg"
+    },
+    {
+      "theme": "debrief",
+      "id": 31,
+      "path": "/visual-assets/debrief-031.svg"
+    },
+    {
+      "theme": "debrief",
+      "id": 32,
+      "path": "/visual-assets/debrief-032.svg"
+    },
+    {
+      "theme": "debrief",
+      "id": 33,
+      "path": "/visual-assets/debrief-033.svg"
+    },
+    {
+      "theme": "debrief",
+      "id": 34,
+      "path": "/visual-assets/debrief-034.svg"
+    },
+    {
+      "theme": "debrief",
+      "id": 35,
+      "path": "/visual-assets/debrief-035.svg"
+    },
+    {
+      "theme": "debrief",
+      "id": 36,
+      "path": "/visual-assets/debrief-036.svg"
+    },
+    {
+      "theme": "debrief",
+      "id": 37,
+      "path": "/visual-assets/debrief-037.svg"
+    },
+    {
+      "theme": "debrief",
+      "id": 38,
+      "path": "/visual-assets/debrief-038.svg"
+    },
+    {
+      "theme": "debrief",
+      "id": 39,
+      "path": "/visual-assets/debrief-039.svg"
+    },
+    {
+      "theme": "debrief",
+      "id": 40,
+      "path": "/visual-assets/debrief-040.svg"
+    },
+    {
+      "theme": "debrief",
+      "id": 41,
+      "path": "/visual-assets/debrief-041.svg"
+    },
+    {
+      "theme": "debrief",
+      "id": 42,
+      "path": "/visual-assets/debrief-042.svg"
+    },
+    {
+      "theme": "debrief",
+      "id": 43,
+      "path": "/visual-assets/debrief-043.svg"
+    },
+    {
+      "theme": "debrief",
+      "id": 44,
+      "path": "/visual-assets/debrief-044.svg"
+    },
+    {
+      "theme": "debrief",
+      "id": 45,
+      "path": "/visual-assets/debrief-045.svg"
+    },
+    {
+      "theme": "debrief",
+      "id": 46,
+      "path": "/visual-assets/debrief-046.svg"
+    },
+    {
+      "theme": "debrief",
+      "id": 47,
+      "path": "/visual-assets/debrief-047.svg"
+    },
+    {
+      "theme": "debrief",
+      "id": 48,
+      "path": "/visual-assets/debrief-048.svg"
+    },
+    {
+      "theme": "debrief",
+      "id": 49,
+      "path": "/visual-assets/debrief-049.svg"
+    },
+    {
+      "theme": "debrief",
+      "id": 50,
+      "path": "/visual-assets/debrief-050.svg"
+    },
+    {
+      "theme": "debrief",
+      "id": 51,
+      "path": "/visual-assets/debrief-051.svg"
+    },
+    {
+      "theme": "debrief",
+      "id": 52,
+      "path": "/visual-assets/debrief-052.svg"
+    },
+    {
+      "theme": "debrief",
+      "id": 53,
+      "path": "/visual-assets/debrief-053.svg"
+    },
+    {
+      "theme": "debrief",
+      "id": 54,
+      "path": "/visual-assets/debrief-054.svg"
+    },
+    {
+      "theme": "debrief",
+      "id": 55,
+      "path": "/visual-assets/debrief-055.svg"
+    },
+    {
+      "theme": "debrief",
+      "id": 56,
+      "path": "/visual-assets/debrief-056.svg"
+    },
+    {
+      "theme": "debrief",
+      "id": 57,
+      "path": "/visual-assets/debrief-057.svg"
+    },
+    {
+      "theme": "debrief",
+      "id": 58,
+      "path": "/visual-assets/debrief-058.svg"
+    },
+    {
+      "theme": "debrief",
+      "id": 59,
+      "path": "/visual-assets/debrief-059.svg"
+    },
+    {
+      "theme": "debrief",
+      "id": 60,
+      "path": "/visual-assets/debrief-060.svg"
+    }
+  ],
+  "selected": {
+    "hero-orbit": "/visual-assets/negotiation-007.svg",
+    "mission-brief": "/visual-assets/intelligence-018.svg",
+    "hr-mind": "/visual-assets/hr-mind-033.svg",
+    "market-signal": "/visual-assets/market-042.svg",
+    "debrief-lab": "/visual-assets/debrief-064.svg"
+  }
+}

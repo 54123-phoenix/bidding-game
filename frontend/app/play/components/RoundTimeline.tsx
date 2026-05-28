@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import ActionBadge from "./ActionBadge";
+import type { RoundActionView } from "../hooks/types";
 
 const AGENT_LABELS: Record<string, string> = {
   candidate: "候选人",
@@ -11,8 +12,8 @@ const AGENT_LABELS: Record<string, string> = {
   market: "市场",
 };
 
-export default function RoundTimeline({ actions }: { actions: any[] }) {
-  const rounds = new Map<number, any[]>();
+export default function RoundTimeline({ actions }: { actions: RoundActionView[] }) {
+  const rounds = new Map<number, RoundActionView[]>();
   actions.forEach((a) => {
     const r = a.round ?? 0;
     if (!rounds.has(r)) rounds.set(r, []);

@@ -7,6 +7,8 @@ import AgentCard from "./AgentCard";
 import RoundTimeline from "./RoundTimeline";
 import EvalBars from "./EvalBars";
 import NarrativeResults from "./NarrativeResults";
+import CredibilityLedger from "./CredibilityLedger";
+import type { EquilibriumView, EvaluationView, FinalResultView, FinalStateView, RoundActionView } from "../hooks/types";
 
 type TabKey = "narrative" | "board" | "timeline" | "eval";
 
@@ -17,7 +19,7 @@ const TABS: { key: TabKey; label: string }[] = [
   { key: "eval", label: "评估与均衡" },
 ];
 
-function extractPlayerTypes(finalState: any) {
+function extractPlayerTypes(finalState: FinalStateView | undefined) {
   return {
     candidate: finalState?.candidate_type || null,
     hr: finalState?.hr_type || null,
@@ -26,7 +28,7 @@ function extractPlayerTypes(finalState: any) {
   };
 }
 
-function extractScores(finalState: any, evaluation?: any) {
+function extractScores(finalState: FinalStateView | undefined, evaluation?: EvaluationView) {
   if (evaluation?.dimensions) {
     return {
       dimensions: evaluation.dimensions,
@@ -46,10 +48,36 @@ function extractScores(finalState: any, evaluation?: any) {
   return { dimensions: dims, composite };
 }
 
+function extractSalary(action: RoundActionView) {
+  const value = action.params?.salary_offer ?? action.params?.salary_ask ?? action.params?.salary_amount ?? action.params?.accepted_salary;
+  return typeof value === "number" ? value : null;
+}
+
+function buildWarReport(actions: RoundActionView[], finalSalary: number | null, outcome: string, successProbability: number) {
+  const salaryActions = actions
+    .map((action) => ({ action, salary: extractSalary(action) }))
+    .filter((item): item is { action: RoundActionView; salary: number } => item.salary !== null);
+  const firstSalary = salaryActions[0]?.salary ?? null;
+  const lastSalary = finalSalary ?? salaryActions[salaryActions.length - 1]?.salary ?? null;
+  const concessions = salaryActions.slice(1).map((item, index) => Math.abs(item.salary - salaryActions[index].salary));
+  const largestMove = concessions.length ? Math.max(...concessions) : 0;
+  const turningPoint = actions.find((action) => /accept|reject|counter_offer|offer/.test(action.action_type) && action.reasoning) || actions[actions.length - 1];
+  const riskLevel = outcome === "accepted" ? "可控" : successProbability >= 0.5 ? "临界" : "高压";
+
+  return {
+    firstSalary,
+    lastSalary,
+    largestMove,
+    riskLevel,
+    turningPoint,
+    signalCount: actions.filter((action) => action.action_type === "signal" || action.action_type === "evaluate").length,
+  };
+}
+
 interface GameResultsViewProps {
-  finalResult: Record<string, unknown>;
+  finalResult: FinalResultView;
   outcomeMessage: string;
-  equilibrium: any;
+  equilibrium: EquilibriumView | null;
   hrPersona?: { name: string; tagline: string };
   recommendation?: string;
   terminationReason?: string;
@@ -82,25 +110,27 @@ export default function GameResultsView({
     finalResult.information_asymmetry_cost || 0
   );
 
-  const finalState = (finalResult.final_state || {}) as any;
-  const actions = (finalState?.action_history || []) as any[];
+  const finalState = finalResult.final_state || {};
+  const actions: RoundActionView[] = finalState?.action_history || [];
+  const warReport = buildWarReport(actions, finalSalary, outcome, successProbability);
   const players = extractPlayerTypes(finalState);
   const scoreData = extractScores(
     finalState,
-    (finalResult as any).evaluation
+    finalResult.evaluation
   );
 
   return (
     <div className="space-y-6">
       {/* Outcome Banner */}
       <motion.div
-        className="text-center"
+        className="surface-raised overflow-hidden rounded-3xl p-6 text-center md:p-8"
         initial={{ opacity: 0, scale: 0.9 }}
         animate={{ opacity: 1, scale: 1 }}
         transition={{ duration: 0.6 }}
       >
+        <div className="pointer-events-none absolute inset-0 micro-grid opacity-20" />
         <motion.div
-          className="text-6xl mb-4"
+          className="relative z-10 mb-4 text-6xl"
           initial={{ rotate: -10, scale: 0 }}
           animate={{ rotate: 0, scale: 1 }}
           transition={{
@@ -113,7 +143,7 @@ export default function GameResultsView({
           {outcome === "accepted" ? "🎉" : "💔"}
         </motion.div>
         <motion.h1
-          className={`text-2xl font-bold mb-2 ${
+          className={`relative z-10 mb-2 text-2xl font-bold ${
             outcome === "accepted"
               ? "text-[var(--state-success)]"
               : "text-[var(--state-danger)]"
@@ -124,6 +154,17 @@ export default function GameResultsView({
         >
           {outcomeMessage}
         </motion.h1>
+        <div className="relative z-10 mx-auto mt-5 grid max-w-4xl gap-2 text-left sm:grid-cols-4">
+          <WarReportMetric label="开局锚点" value={warReport.firstSalary ? `${warReport.firstSalary}K` : "--"} />
+          <WarReportMetric label="终局报价" value={warReport.lastSalary ? `${warReport.lastSalary}K` : "--"} tone="cyan" />
+          <WarReportMetric label="最大让步" value={`${warReport.largestMove}K`} tone="orange" />
+          <WarReportMetric label="风险态势" value={warReport.riskLevel} tone={warReport.riskLevel === "高压" ? "danger" : "cyan"} />
+        </div>
+        <div className="relative z-10 mx-auto mt-4 max-w-3xl rounded-xl border border-[var(--border-hairline)] bg-[var(--bg-canvas)]/45 px-4 py-3 text-left text-xs leading-relaxed text-[var(--text-secondary)]">
+          <span className="font-bold text-[var(--accent-cyan)]">战报摘要：</span>
+          本局共记录 {actions.length} 个行动信号、{warReport.signalCount} 个评估/市场信号。
+          {warReport.turningPoint?.reasoning ? ` 关键转折来自第 ${warReport.turningPoint.round + 1} 轮：${warReport.turningPoint.reasoning}` : " 关键转折将在轮次回放中展开。"}
+        </div>
       </motion.div>
 
       {/* Results Grid */}
@@ -138,6 +179,8 @@ export default function GameResultsView({
         equilibriumType={equilibrium?.equilibrium_type}
         solverIterations={equilibrium?.solver_iterations}
       />
+
+      <CredibilityLedger finalResult={finalResult} equilibrium={equilibrium} />
 
       {/* Tab Switcher */}
       <div className="flex gap-2 border-b border-[var(--border-hairline)]"
@@ -273,7 +316,7 @@ export default function GameResultsView({
             transition={{ duration: 0.25 }}
             className="grid grid-cols-1 md:grid-cols-2 gap-6"
           >
-            <div className="bg-[var(--bg-panel)] border border-[var(--border-hairline)] rounded-xl p-6"
+            <div className="surface-base rounded-3xl p-6"
             >
               <h2 className="text-sm font-semibold text-[var(--accent-cyan)] mb-4"
               >
@@ -284,11 +327,11 @@ export default function GameResultsView({
                 composite={scoreData.composite}
               />
             </div>
-            <div className="bg-[var(--bg-panel)] border border-[var(--border-hairline)] rounded-xl p-6"
+            <div className="surface-base rounded-3xl p-6"
             >
               <h2 className="text-sm font-semibold text-[var(--hr-purple)] mb-4"
               >
-                贝叶斯纳什均衡
+                策略响应分析
               </h2>
               <div className="space-y-4 text-sm">
                 {equilibrium?.candidate_strategy && (
@@ -307,7 +350,7 @@ export default function GameResultsView({
                         </span>{" "}
                         <span className="text-[var(--text-primary)] font-mono"
                         >
-                          {equilibrium.candidate_strategy.opening_salary_ask}
+                          {equilibrium.candidate_strategy.opening_salary_ask ?? "--"}
                           K
                         </span>
                       </div>
@@ -330,7 +373,7 @@ export default function GameResultsView({
                         </span>{" "}
                         <span className="text-[var(--text-primary)] font-mono"
                         >
-                          {equilibrium.candidate_strategy.reservation_wage}K
+                          {equilibrium.candidate_strategy.reservation_wage ?? "--"}K
                         </span>
                       </div>
                       <div>
@@ -342,7 +385,7 @@ export default function GameResultsView({
                         >
                           {
                             equilibrium.candidate_strategy
-                              .willing_to_concede_to
+                              .willing_to_concede_to ?? "--"
                           }
                           K
                         </span>
@@ -366,7 +409,7 @@ export default function GameResultsView({
                         </span>{" "}
                         <span className="text-[var(--text-primary)] font-mono"
                         >
-                          {equilibrium.hr_strategy.opening_offer}K
+                          {equilibrium.hr_strategy.opening_offer ?? "--"}K
                         </span>
                       </div>
                       <div>
@@ -376,7 +419,7 @@ export default function GameResultsView({
                         </span>{" "}
                         <span className="text-[var(--text-primary)] font-mono"
                         >
-                          {equilibrium.hr_strategy.max_final_offer}K
+                          {equilibrium.hr_strategy.max_final_offer ?? "--"}K
                         </span>
                       </div>
                       <div>
@@ -386,7 +429,7 @@ export default function GameResultsView({
                         </span>{" "}
                         <span className="text-[var(--text-primary)] font-mono"
                         >
-                          {equilibrium.hr_strategy.budget_ceiling}K
+                          {equilibrium.hr_strategy.budget_ceiling ?? "--"}K
                         </span>
                       </div>
                       <div>
@@ -396,7 +439,7 @@ export default function GameResultsView({
                         </span>{" "}
                         <span className="text-[var(--text-primary)]"
                         >
-                          {(equilibrium.hr_strategy.urgency * 100).toFixed(0)}%
+                          {typeof equilibrium.hr_strategy.urgency === "number" ? `${(equilibrium.hr_strategy.urgency * 100).toFixed(0)}%` : "--"}
                         </span>
                       </div>
                     </div>
@@ -441,6 +484,16 @@ export default function GameResultsView({
           </motion.div>
         )}
       </AnimatePresence>
+    </div>
+  );
+}
+
+function WarReportMetric({ label, value, tone = "normal" }: { label: string; value: string; tone?: "normal" | "cyan" | "orange" | "danger" }) {
+  const color = tone === "cyan" ? "var(--accent-cyan)" : tone === "orange" ? "var(--accent-ali)" : tone === "danger" ? "var(--state-danger)" : "var(--text-primary)";
+  return (
+    <div className="rounded-xl border border-[var(--border-hairline)] bg-[var(--bg-canvas)]/45 px-3 py-2">
+      <div className="text-[9px] uppercase tracking-[0.18em] text-[var(--text-tertiary)]">{label}</div>
+      <div className="mt-1 font-mono text-lg font-black tabular-nums" style={{ color }}>{value}</div>
     </div>
   );
 }

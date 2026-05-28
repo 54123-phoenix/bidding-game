@@ -2,6 +2,17 @@
 
 import { useState, useEffect, useCallback, useRef } from "react";
 import { getGameState } from "@/lib/game-api";
+import type {
+  FinalResultView,
+  GameOption,
+  GameStateView,
+  HRPersonaView,
+  InfoCardView,
+  JobView,
+  ResumeView,
+  RoundActionView,
+  TrustStateView,
+} from "./types";
 
 const LS_KEY = "bidding_game_session";
 const HISTORY_KEY = "bidding_history";
@@ -10,24 +21,24 @@ const TUTORIAL_KEY = "bidding_tutorial_done";
 export interface GameSession {
   sessionId: string;
   step: number;
-  resumeData: Record<string, unknown> | null;
-  jobData: Record<string, unknown> | null;
-  finalResult: Record<string, unknown> | null;
+  resumeData: ResumeView | null;
+  jobData: JobView | null;
+  finalResult: FinalResultView | null;
   equilibrium: Record<string, unknown> | null;
   outcomeMessage: string;
-  actions: Record<string, unknown>[];
-  gameState: Record<string, unknown> | null;
+  actions: RoundActionView[];
+  gameState: GameStateView | null;
   gameRound: number;
   chatMessages: { role: "user" | "advisor"; text: string }[];
-  options: Record<string, unknown>[];
+  options: GameOption[];
   prompt: string;
-  hrPersona: Record<string, unknown> | null;
+  hrPersona: HRPersonaView | null;
   hrPatience: number;
   strategy: string;
   market: string;
   model: string;
-  infoCards: any[];
-  trustState: { hr_trust_in_candidate: number; trust_label: string } | null;
+  infoCards: InfoCardView[];
+  trustState: TrustStateView | null;
   infoNarrative: string;
   savedAt: number;
 }
@@ -40,39 +51,36 @@ function isSessionExpired(savedAt: number): boolean {
 export function useGameSession() {
   const [sessionId, setSessionId] = useState("");
   const [step, setStep] = useState(1);
-  const [resumeData, setResumeData] = useState<Record<string, unknown> | null>(null);
-  const [jobData, setJobData] = useState<Record<string, unknown> | null>(null);
-  const [finalResult, setFinalResult] = useState<Record<string, unknown> | null>(null);
+  const [resumeData, setResumeData] = useState<ResumeView | null>(null);
+  const [jobData, setJobData] = useState<JobView | null>(null);
+  const [finalResult, setFinalResult] = useState<FinalResultView | null>(null);
   const [equilibrium, setEquilibrium] = useState<Record<string, unknown> | null>(null);
   const [outcomeMessage, setOutcomeMessage] = useState("");
-  const [actions, setActions] = useState<Record<string, unknown>[]>([]);
-  const [gameState, setGameState] = useState<Record<string, unknown> | null>(null);
+  const [actions, setActions] = useState<RoundActionView[]>([]);
+  const [gameState, setGameState] = useState<GameStateView | null>(null);
   const [gameRound, setGameRound] = useState(0);
   const [chatMessages, setChatMessages] = useState<{ role: "user" | "advisor"; text: string }[]>([]);
-  const [options, setOptions] = useState<Record<string, unknown>[]>([]);
+  const [options, setOptions] = useState<GameOption[]>([]);
   const [prompt, setPrompt] = useState("");
-  const [hrPersona, setHrPersona] = useState<Record<string, unknown> | null>(null);
+  const [hrPersona, setHrPersona] = useState<HRPersonaView | null>(null);
   const [hrPatience, setHrPatience] = useState(1.0);
   const [strategy, setStrategy] = useState("balanced");
   const [market, setMarket] = useState("normal");
   const [model, setModel] = useState("qwen-turbo");
-  const [hasCompletedTutorial, setHasCompletedTutorial] = useState(true);
-  const [infoCards, setInfoCards] = useState<any[]>([]);
-  const [trustState, setTrustState] = useState<{ hr_trust_in_candidate: number; trust_label: string } | null>(null);
+  const [hasCompletedTutorial, setHasCompletedTutorial] = useState(() => {
+    try {
+      return Boolean(localStorage.getItem(TUTORIAL_KEY));
+    } catch {
+      return true;
+    }
+  });
+  const [infoCards, setInfoCards] = useState<InfoCardView[]>([]);
+  const [trustState, setTrustState] = useState<TrustStateView | null>(null);
   const [infoNarrative, setInfoNarrative] = useState("");
   const [sessionExpired, setSessionExpired] = useState(false);
 
   const isRestored = useRef(false);
-  const isTutorialChecked = useRef(false);
   const syncingRef = useRef(false);
-
-  useEffect(() => {
-    if (isTutorialChecked.current) return;
-    isTutorialChecked.current = true;
-    try {
-      if (!localStorage.getItem(TUTORIAL_KEY)) setHasCompletedTutorial(false);
-    } catch {}
-  }, []);
 
   const completeTutorial = useCallback(() => {
     setHasCompletedTutorial(true);
@@ -102,7 +110,7 @@ export function useGameSession() {
   }, [sessionId, buildSession]);
 
   const saveToHistory = useCallback((
-    fr: Record<string, unknown> | null,
+    fr: FinalResultView | null,
     eq: Record<string, unknown> | null,
     msg: string
   ) => {
@@ -163,10 +171,10 @@ export function useGameSession() {
       if (data.status === "ok") {
         if (data.game_state) setGameState(data.game_state);
         if (data.round !== undefined) setGameRound(data.round);
-        if (data.round_actions) setActions(data.round_actions as Record<string, unknown>[]);
+        if (data.round_actions) setActions(data.round_actions as RoundActionView[]);
         if (data.prompt) setPrompt(data.prompt);
-        if (data.options) setOptions(data.options as Record<string, unknown>[]);
-        if (data.hr_persona) setHrPersona(data.hr_persona as Record<string, unknown>);
+        if (data.options) setOptions(data.options as GameOption[]);
+        if (data.hr_persona) setHrPersona(data.hr_persona as HRPersonaView);
         if (data.hr_patience !== undefined) setHrPatience(data.hr_patience);
         if (data.info_cards) setInfoCards(data.info_cards);
         if (data.trust_state) setTrustState(data.trust_state);
@@ -223,14 +231,14 @@ export function useGameSession() {
       const item = history.find((h) => h.id === id || h.sessionId === id);
       if (!item) return;
       setSessionId(String(item.sessionId || id));
-      setResumeData((item.resumeData as Record<string, unknown>) || null);
-      setJobData((item.jobData as Record<string, unknown>) || null);
-      setFinalResult((item.finalResult as Record<string, unknown>) || null);
+      setResumeData((item.resumeData as ResumeView) || null);
+      setJobData((item.jobData as JobView) || null);
+      setFinalResult((item.finalResult as FinalResultView) || null);
       setEquilibrium((item.equilibrium as Record<string, unknown>) || null);
       setOutcomeMessage(String(item.outcomeMessage || ""));
-      setActions((item.actions as Record<string, unknown>[]) || []);
+      setActions((item.actions as RoundActionView[]) || []);
       setChatMessages((item.chatMessages as { role: "user" | "advisor"; text: string }[]) || []);
-      setHrPersona((item.hrPersona as Record<string, unknown>) || null);
+      setHrPersona((item.hrPersona as HRPersonaView) || null);
       setHrPatience((item.hrPatience as number) ?? 1.0);
       setGameRound((Number(item.negotiationRounds) || 1) - 1);
       setStep(3);

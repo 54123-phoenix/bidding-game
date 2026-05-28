@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 
 const QUICK_TACTICS = [
@@ -58,21 +58,14 @@ export default function FreeTextNegotiation({
   hrThinking,
 }: FreeTextNegotiationProps) {
   const [text, setText] = useState("");
-  const [detectedSalary, setDetectedSalary] = useState<number | null>(null);
-  const [detectedIntent, setDetectedIntent] = useState<{ label: string; color: string } | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
-
-  useEffect(() => {
-    setDetectedSalary(extractSalary(text));
-    setDetectedIntent(detectIntent(text));
-  }, [text]);
+  const detectedSalary = extractSalary(text);
+  const detectedIntent = detectIntent(text);
 
   const handleSend = () => {
     if (!text.trim() || disabled || hrThinking) return;
     onSend(text.trim());
     setText("");
-    setDetectedSalary(null);
-    setDetectedIntent(null);
   };
 
   return (
@@ -88,7 +81,7 @@ export default function FreeTextNegotiation({
               inputRef.current?.focus();
             }}
             disabled={disabled || hrThinking}
-            className="shrink-0 px-3 py-1.5 rounded-md bg-[var(--bg-elev)] border border-[var(--border-hairline)] text-[11px] text-[var(--text-tertiary)] hover:text-[var(--text-secondary)] hover:border-[var(--border-strong)] transition-colors disabled:opacity-40"
+            className="shrink-0 px-3 py-1.5 rounded-md bg-[var(--bg-elev)] border border-[var(--border-hairline)] text-[11px] text-[var(--text-tertiary)] hover:text-[var(--text-secondary)] hover:border-[var(--border-strong)] transition-colors disabled:opacity-40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-cyan)]/40"
           >
             {t.label}
           </button>
@@ -103,12 +96,14 @@ export default function FreeTextNegotiation({
           <input
             ref={inputRef}
             type="text"
+            name="negotiation-message"
+            aria-label="谈判话术"
             value={text}
             onChange={(e) => setText(e.target.value)}
             onKeyDown={(e) => e.key === "Enter" && handleSend()}
-            placeholder="输入谈判话术，例如：我目前总包60k，期望不低于这个数..."
+            placeholder="输入谈判话术，例如：我目前总包60k，期望不低于这个数…"
             disabled={disabled || hrThinking}
-            className="w-full bg-[var(--bg-elev)] border border-[var(--border-hairline)] rounded-lg px-4 py-2.5 text-sm text-[var(--text-primary)] placeholder:text-[var(--text-tertiary)] focus:outline-none focus:border-[var(--accent-cyan)]/50 disabled:opacity-50"
+            className="w-full bg-[var(--bg-elev)] border border-[var(--border-hairline)] rounded-lg px-4 py-2.5 text-sm text-[var(--text-primary)] placeholder:text-[var(--text-tertiary)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-cyan)]/60 disabled:opacity-50"
           />
           <AnimatePresence>
             {(detectedSalary || detectedIntent) && (
@@ -137,21 +132,21 @@ export default function FreeTextNegotiation({
         <button
           onClick={handleSend}
           disabled={disabled || hrThinking || !text.trim()}
-          className="px-5 py-2.5 rounded-lg bg-[var(--accent-cyan)] text-[var(--bg-canvas)] text-sm font-bold hover:brightness-110 disabled:opacity-30 disabled:pointer-events-none transition-all"
+          className="px-5 py-2.5 rounded-lg bg-[var(--accent-cyan)] text-[var(--bg-canvas)] text-sm font-bold hover:brightness-110 disabled:opacity-30 disabled:pointer-events-none transition-[filter,opacity] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-cyan)]/60"
         >
           发送
         </button>
         <button
           onClick={onAccept}
           disabled={disabled || hrThinking}
-          className="px-4 py-2.5 rounded-lg bg-[var(--state-success)] text-[var(--bg-canvas)] text-sm font-bold hover:brightness-110 disabled:opacity-30 disabled:pointer-events-none transition-all"
+          className="px-4 py-2.5 rounded-lg bg-[var(--state-success)] text-[var(--bg-canvas)] text-sm font-bold hover:brightness-110 disabled:opacity-30 disabled:pointer-events-none transition-[filter,opacity] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--state-success)]/60"
         >
           接受
         </button>
         <button
           onClick={onReject}
           disabled={disabled || hrThinking}
-          className="px-4 py-2.5 rounded-lg bg-[var(--bg-elev)] border border-[var(--border-hairline)] text-[var(--text-secondary)] text-sm font-bold hover:bg-[var(--bg-card)] disabled:opacity-30 disabled:pointer-events-none transition-all"
+          className="px-4 py-2.5 rounded-lg bg-[var(--bg-elev)] border border-[var(--border-hairline)] text-[var(--text-secondary)] text-sm font-bold hover:bg-[var(--bg-card)] disabled:opacity-30 disabled:pointer-events-none transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-cyan)]/40"
         >
           拒绝
         </button>

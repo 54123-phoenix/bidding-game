@@ -4,6 +4,17 @@
  */
 
 import { API_BASE } from "./api";
+import type {
+  FinalResultView,
+  GameOption,
+  GameStateView,
+  HRPersonaView,
+  InfoCardView,
+  JobView,
+  ResumeView,
+  RoundActionView,
+  TrustStateView,
+} from "@/app/play/hooks/types";
 
 export interface GameSession {
   session_id: string;
@@ -27,8 +38,8 @@ export interface GameListResponse {
 }
 
 export interface GameInitRequest {
-  resume: Record<string, unknown>;
-  job: Record<string, unknown>;
+  resume: ResumeView;
+  job: JobView;
   strategy?: string;
   market_condition?: string;
   model?: string | null;
@@ -39,36 +50,23 @@ export interface GameInitResponse {
   session_id?: string;
   round?: number;
   phase?: string;
-  hr_persona?: {
-    name: string;
-    archetype: string;
-    tagline: string;
-    greeting: string;
-    avatar_expression?: string;
-    avatar_color?: string;
-    tone_style?: string;
-  };
+  hr_persona?: HRPersonaView;
   hr_patience?: number;
   prompt?: string;
-  options?: Array<{
-    action: string;
-    label: string;
-    salary?: number;
-    color?: string;
-  }>;
+  options?: GameOption[];
   message?: string;
   screening?: Record<string, unknown>;
   // Fields from /api/game/state (session recovery)
-  resume?: Record<string, unknown>;
-  job?: Record<string, unknown>;
-  game_state?: Record<string, unknown>;
-  round_actions?: Record<string, unknown>[];
-  final_result?: Record<string, unknown>;
+  resume?: ResumeView;
+  job?: JobView;
+  game_state?: GameStateView;
+  round_actions?: RoundActionView[];
+  final_result?: FinalResultView;
   equilibrium?: Record<string, unknown>;
   outcome?: string;
   termination_reason?: string;
-  info_cards?: any[];
-  trust_state?: { hr_trust_in_candidate: number; trust_label: string };
+  info_cards?: InfoCardView[];
+  trust_state?: TrustStateView;
   info_narrative?: string;
 }
 
@@ -85,16 +83,23 @@ export interface GameActResponse {
   round?: number;
   phase?: string;
   outcome?: string;
-  game_state?: Record<string, unknown>;
-  final_result?: Record<string, unknown>;
+  game_state?: GameStateView;
+  final_result?: FinalResultView;
   message?: string;
   prompt?: string;
-  options?: Array<{
-    action: string;
-    label: string;
-    salary?: number;
-    color?: string;
-  }>;
+  options?: GameOption[];
+}
+
+export interface UploadResumeResponse {
+  status: string;
+  resume?: ResumeView | null;
+  message?: string;
+}
+
+export interface ParseJDResponse {
+  status: string;
+  job?: JobView | null;
+  message?: string;
 }
 
 /** Get game state by session_id (for /play page recovery). */
@@ -138,7 +143,7 @@ export async function uploadResume(
   file: File | Blob,
   filename?: string,
   sourceType?: string
-): Promise<Record<string, unknown>> {
+): Promise<UploadResumeResponse> {
   const form = new FormData();
   if (filename) {
     form.append("file", file, filename);
@@ -157,7 +162,7 @@ export async function uploadResume(
 }
 
 /** Parse natural language resume text. */
-export async function parseResumeText(text: string): Promise<Record<string, unknown>> {
+export async function parseResumeText(text: string): Promise<UploadResumeResponse> {
   const form = new FormData();
   form.append("resume_text", text);
   const res = await fetch(`${API_BASE}/api/resume/parse`, {
@@ -169,7 +174,7 @@ export async function parseResumeText(text: string): Promise<Record<string, unkn
 }
 
 /** Parse natural language JD text. */
-export async function parseJD(text: string): Promise<Record<string, unknown>> {
+export async function parseJD(text: string): Promise<ParseJDResponse> {
   const form = new FormData();
   form.append("jd_text", text);
   const res = await fetch(`${API_BASE}/api/jd/parse`, {

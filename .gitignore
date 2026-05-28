@@ -41,8 +41,21 @@ node_modules/
 .next/
 *.tsbuildinfo
 
+# Testing
+.pytest_cache/
+.mypy_cache/
+
 # Coverage
 htmlcov/
 .coverage
 .coverage.*
 coverage.xml
+
+# Claude settings (local)
+.claude/settings.local.json
+
+# External dev tooling
+.superpowers/
+.opencode/
+opencode.json
+docs/superpowers/

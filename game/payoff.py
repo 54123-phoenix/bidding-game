@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import math
 
+from core.config import app_config
 from models.schemas import (
     CandidatePrivateType,
     GameResult,
@@ -28,6 +29,10 @@ def candidate_payoff(result: GameResult, ctype: CandidatePrivateType) -> float:
     career_ambition = 1.0 → pure growth seeker (cares about level + learning)
     career_ambition = 0.0 → pure salary seeker
     """
+    cfg = getattr(app_config.game, "payoff_weights", {})
+    salary_weight = cfg.get("candidate_salary", 0.7)
+    growth_weight = cfg.get("candidate_growth", 0.3)
+
     if result.outcome == "rejected" or result.outcome == "timeout":
         # Fallback to outside options — normalized to 0-1
         if ctype.outside_options:
@@ -50,7 +55,7 @@ def candidate_payoff(result: GameResult, ctype: CandidatePrivateType) -> float:
 
     # Composite
     ambition = ctype.career_ambition
-    total = salary_utility * (1 - ambition) * 0.7 + growth_utility * ambition * 0.3
+    total = salary_utility * (1 - ambition) * salary_weight + growth_utility * ambition * growth_weight
     return round(min(max(total, 0.0), 1.0), 3)
 
 
@@ -62,6 +67,11 @@ def hr_payoff(result: GameResult, hrtype: HRPrivateType) -> float:
     if result.outcome == "rejected" or result.outcome == "timeout":
         # Failed to hire — penalty proportional to urgency
         return -0.3 * hrtype.urgency
+
+    cfg = getattr(app_config.game, "payoff_weights", {})
+    quality_weight = cfg.get("hr_quality", 0.6)
+    cost_weight = cfg.get("hr_cost", 0.25)
+    equity_weight = cfg.get("hr_equity", 0.15)
 
     # Quality = success probability from simulation
     quality = result.success_probability
@@ -84,7 +94,7 @@ def hr_payoff(result: GameResult, hrtype: HRPrivateType) -> float:
         overage = (final_salary - hrtype.internal_equity_constraint) / max(hrtype.internal_equity_constraint, 1)
         equity_penalty = min(overage * 0.4, 0.3)
 
-    total = quality * 0.6 - cost_penalty * 0.25 - equity_penalty * 0.15
+    total = quality * quality_weight - cost_penalty * cost_weight - equity_penalty * equity_weight
     return round(min(max(total, -0.5), 1.0), 3)
 
 
@@ -101,6 +111,11 @@ def interviewer_payoff(
     if result.outcome == "timeout":
         return 0.3  # Neutral — no decision to evaluate
 
+    cfg = getattr(app_config.game, "payoff_weights", {})
+    accuracy_weight = cfg.get("interviewer_accuracy", 0.7)
+    bias_weight = cfg.get("interviewer_bias", 0.3)
+    strictness_weight = cfg.get("interviewer_strictness", 0.2)
+
     # Base: decision quality
     if result.outcome == "accepted":
         # Was this a good hire? Use success_prob as proxy
@@ -111,13 +126,13 @@ def interviewer_payoff(
 
     # Bias penalty: more biased interviewers get lower accuracy reward
     bias_magnitude = sum(abs(b) for b in itype.bias_vector.values()) / max(len(itype.bias_vector), 1)
-    bias_penalty = bias_magnitude * 0.3
+    bias_penalty = bias_magnitude * bias_weight
 
     # Strictness alignment: very strict or very lenient both reduce utility
     strictness_deviation = abs(itype.strictness - 0.5)
-    strictness_penalty = strictness_deviation * 0.2
+    strictness_penalty = strictness_deviation * strictness_weight
 
-    total = base * 0.7 - bias_penalty - strictness_penalty
+    total = base * accuracy_weight - bias_penalty - strictness_penalty
     return round(min(max(total, 0.0), 1.0), 3)
 
 
@@ -135,14 +150,19 @@ def market_payoff(result: GameResult, mtype: MarketPrivateType) -> float:
             return 0.6  # Correctly avoided a bad match
         return 0.3  # Potentially missed a good match
 
+    cfg = getattr(app_config.game, "payoff_weights", {})
+    efficiency_weight = cfg.get("market_efficiency", 0.6)
+    speed_weight = cfg.get("market_speed", 1.0)
+    balance_weight = cfg.get("market_balance", 0.2)
+
     # Accepted: reward efficient matching
     efficiency = result.success_probability
-    speed_bonus = max(0, 1.0 - result.negotiation_rounds / result.final_state.max_rounds) * 0.2
+    speed_bonus = max(0, 1.0 - result.negotiation_rounds / result.final_state.max_rounds) * 0.2 * speed_weight
 
     # Market balance: if supply >> demand, accepted offers are more valuable
     balance_factor = min(mtype.supply_demand_ratio, 2.0) / 2.0
 
-    total = efficiency * 0.6 + speed_bonus + balance_factor * 0.2
+    total = efficiency * efficiency_weight + speed_bonus + balance_factor * balance_weight
     return round(min(max(total, 0.0), 1.0), 3)
 
 

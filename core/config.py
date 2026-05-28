@@ -47,7 +47,7 @@ class RedisConfig:
 @dataclass
 class GameConfig:
     max_rounds: int = 8
-    bootstrap_samples: int = 50
+    bootstrap_samples: int = 1000
     equilibrium_max_iter: int = 20
 
 

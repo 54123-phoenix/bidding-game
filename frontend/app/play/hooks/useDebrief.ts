@@ -21,8 +21,9 @@ export function useDebrief(sessionId: string) {
         body: JSON.stringify({ session_id: sessionId, message: "" }),
       });
       const d = await r.json();
-      if (d.reply) setChatMessages([{ role: "advisor", text: d.reply }]);
-    } catch {}
+      if (d.status && d.status !== "ok") setChatMessages([{ role: "advisor", text: d.message || "复盘生成失败。" }]);
+      else if (d.reply) setChatMessages([{ role: "advisor", text: d.reply }]);
+    } catch { setChatMessages([{ role: "advisor", text: "网络错误，请重试。" }]); }
     setChatLoading(false);
   }, [sessionId]);
 

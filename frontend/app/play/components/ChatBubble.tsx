@@ -73,6 +73,16 @@ const BADGE_COLORS: Record<string, string> = {
   signal: "bg-amber-700/60 text-amber-200",
 };
 
+const INTENT_META: Record<string, { label: string; tone: "ai" | "strategy" | "risk"; hint: string }> = {
+  accept: { label: "检测意图: 成交", tone: "strategy", hint: "锁定报价" },
+  reject: { label: "风险信号: 破局", tone: "risk", hint: "谈判窗口收窄" },
+  offer: { label: "提取指标: 首轮锚定", tone: "ai", hint: "建立价格参照" },
+  counter_offer: { label: "检测意图: 拉锯", tone: "strategy", hint: "测试对方底线" },
+  evaluate: { label: "AI 评估: 候选人画像", tone: "ai", hint: "更新信念" },
+  signal: { label: "市场信号: 外部压力", tone: "ai", hint: "影响议价权" },
+  wait: { label: "策略建议: 暂缓", tone: "strategy", hint: "保留筹码" },
+};
+
 function getSalaryFromAction(a: RoundAction): string {
   const s =
     a.params?.salary_offer ||
@@ -86,6 +96,58 @@ function formatActionText(a: RoundAction): string {
   const action = ACTION_LABELS[a.action_type] || a.action_type;
   const salary = getSalaryFromAction(a);
   return ` ${action}${salary}`;
+}
+
+function getIntentMeta(a: RoundAction) {
+  const meta = INTENT_META[a.action_type] || { label: "AI 拦截: 行为识别", tone: "ai" as const, hint: "分析谈判动作" };
+  if (a.player === "hr" && (a.action_type === "offer" || a.action_type === "counter_offer")) {
+    return { label: "检测意图: 压价试探", tone: "risk" as const, hint: "关注让步空间" };
+  }
+  return meta;
+}
+
+function intentClass(tone: "ai" | "strategy" | "risk") {
+  if (tone === "strategy") return "strategy-chip";
+  if (tone === "risk") return "border border-[var(--state-danger)]/25 bg-[rgba(251,113,133,0.10)] text-[var(--state-danger)] shadow-[0_0_18px_rgba(251,113,133,0.08)]";
+  return "ai-chip";
+}
+
+function extractEvidenceTokens(action: RoundAction, reasoning: string) {
+  const text = `${reasoning} ${Object.values(action.params || {}).join(" ")}`.toLowerCase();
+  const tokens: string[] = [];
+  const add = (label: string) => {
+    if (!tokens.includes(label)) tokens.push(label);
+  };
+
+  if (/budget|预算|成本|ceiling|上限/.test(text)) add("预算约束");
+  if (/market|市场|supply|demand|供需|竞争/.test(text)) add("市场压力");
+  if (/skill|技能|experience|经验|能力|fit|匹配/.test(text)) add("能力匹配");
+  if (/risk|风险|stability|稳定|trust|信任/.test(text)) add("信任风险");
+  if (/offer|报价|薪资|salary|compensation|package/.test(text)) add("报价锚点");
+  if (/patience|耐心|round|回合/.test(text)) add("时间压力");
+  if (tokens.length === 0) {
+    if (action.player === "hr") add("HR话术");
+    else add("候选策略");
+  }
+  return tokens.slice(0, 3);
+}
+
+function buildEvidenceChain(action: RoundAction, reasoning: string) {
+  const intent = getIntentMeta(action);
+  const evidence = extractEvidenceTokens(action, reasoning);
+  const suggestion = action.player === "hr"
+    ? action.action_type === "offer" || action.action_type === "counter_offer"
+      ? "先验证对方预算，再决定是否让步"
+      : action.action_type === "reject"
+      ? "降低破局风险，改用稳健信息牌"
+      : "观察HR信号，保留关键筹码"
+    : action.action_type === "offer" || action.action_type === "counter_offer"
+    ? "用报价建立锚点，并准备证据支撑"
+    : action.action_type === "accept"
+    ? "确认成交收益，进入复盘"
+    : "控制节奏，避免过早暴露底线";
+
+  return { evidence, inference: intent.label.replace(/^(检测意图|提取指标|风险信号|AI 评估|市场信号|策略建议|AI 拦截):\s*/, ""), suggestion };
 }
 
 // ═══════════════════════════════════════════════════════════════
@@ -266,8 +328,9 @@ function ChatBubbleMessage({
 }) {
   const isCandidate = action.player === "candidate";
   const reasoning = action.reasoning || "";
+  const typewriterReasoning = useTypewriter(reasoning, 25, typewriterTrigger);
   const displayedReasoning = useTypewriterEffect
-    ? useTypewriter(reasoning, 25, typewriterTrigger)
+    ? typewriterReasoning
     : reasoning;
   const isTyping = useTypewriterEffect && displayedReasoning.length < reasoning.length;
 
@@ -275,6 +338,8 @@ function ChatBubbleMessage({
   const badgeColor = BADGE_COLORS[action.action_type] || "bg-slate-700/60 text-slate-300";
   const actionText = formatActionText(action);
   const salary = getSalaryFromAction(action);
+  const intent = getIntentMeta(action);
+  const evidenceChain = buildEvidenceChain(action, reasoning);
 
   // HR mood for this message
   const mood = !isCandidate && hrPersona
@@ -327,7 +392,7 @@ function ChatBubbleMessage({
       )}
 
       {/* Bubble */}
-      <div className={`flex flex-col gap-1 ${isCandidate ? "items-end" : "items-start"} max-w-[70%]`}>
+      <div className={`flex flex-col gap-1.5 ${isCandidate ? "items-end" : "items-start"} max-w-[74%]`}>
         {/* Sender name + mood + action badge */}
         <div className={`flex items-center gap-2 ${isCandidate ? "flex-row-reverse" : ""} flex-wrap`}>
           <span className="text-[11px] font-medium text-slate-400">
@@ -354,10 +419,11 @@ function ChatBubbleMessage({
         {/* Message body */}
         {reasoning && (
           <div
-            className={`rounded-2xl px-4 py-2.5 border ${bubbleColor} ${
+            className={`relative overflow-hidden rounded-2xl px-4 py-2.5 border ${bubbleColor} ${
               isCandidate ? "rounded-tr-sm" : "rounded-tl-sm"
             }`}
           >
+            <div className="pointer-events-none absolute inset-0 scanline-soft opacity-20" />
             <p className="text-xs leading-relaxed whitespace-pre-wrap">
               {displayedReasoning}
               {isTyping && (
@@ -368,6 +434,25 @@ function ChatBubbleMessage({
                 />
               )}
             </p>
+          </div>
+        )}
+
+        <div className={`flex flex-wrap gap-1.5 ${isCandidate ? "justify-end" : "justify-start"}`}>
+          <span className={`rounded-full px-2 py-0.5 text-[9px] font-bold ${intentClass(intent.tone)}`}>
+            {intent.label}
+          </span>
+          <span className="rounded-full border border-[var(--border-hairline)] bg-[var(--bg-canvas)]/55 px-2 py-0.5 text-[9px] text-[var(--text-tertiary)]">
+            {intent.hint}
+          </span>
+        </div>
+
+        {reasoning && (
+          <div className={`max-w-full text-[9px] leading-relaxed text-[var(--text-tertiary)] ${isCandidate ? "text-right" : "text-left"}`}>
+            <span className="text-[var(--accent-cyan)]">AI</span>
+            <span> 依据 {evidenceChain.evidence.join(" / ")}，判断为 </span>
+            <b className="font-semibold text-[var(--text-secondary)]">{evidenceChain.inference}</b>
+            <span>，建议 </span>
+            <b className="font-semibold text-[var(--accent-ali)]">{evidenceChain.suggestion}</b>
           </div>
         )}
 
@@ -393,28 +478,28 @@ export default function ChatBubblePanel({
   streamingPhase,
 }: ChatBubblePanelProps) {
   const bottomRef = useRef<HTMLDivElement>(null);
-  const [prevActionCount, setPrevActionCount] = useState(0);
-
   // Auto-scroll when new actions arrive or streaming text updates
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [actions.length, streamingText, isThinking]);
 
-  // Track when a new HR action is added (to trigger typewriter on the last one)
-  const needsTypewriter = actions.length > prevActionCount;
-  if (actions.length > prevActionCount) {
-    setPrevActionCount(actions.length);
-  }
+  const visibleActions = useMemo(
+    () => actions.filter((a) => a.player === "candidate" || a.player === "hr"),
+    [actions]
+  );
 
-  const hrActions = actions.filter((a) => a.player === "hr");
+  // Track when a new HR action is added (to trigger typewriter on the last one)
+  const needsTypewriter = visibleActions.length > 0;
+
+  const hrActions = visibleActions.filter((a) => a.player === "hr");
   const lastHrActionIdx =
     hrActions.length > 0
-      ? actions.indexOf(hrActions[hrActions.length - 1])
+      ? visibleActions.indexOf(hrActions[hrActions.length - 1])
       : -1;
 
   // Current HR mood (based on last action + patience)
   const currentMood = hrPersona
-    ? getHRMoodFromActions(hrPersona.archetype, hrPatience, actions)
+    ? getHRMoodFromActions(hrPersona.archetype, hrPatience, visibleActions)
     : null;
 
   const patiencePct = Math.round(hrPatience * 100);
@@ -425,10 +510,11 @@ export default function ChatBubblePanel({
     : "bg-red-500";
 
   return (
-    <div className="bg-slate-900/60 border border-slate-800/60 rounded-xl overflow-hidden">
+    <div className="surface-raised overflow-hidden rounded-3xl">
       {/* HR Profile Header */}
       {hrPersona && (
-        <div className="px-4 py-3 border-b border-slate-800/60 bg-slate-900/90">
+        <div className="relative border-b border-[var(--border-hairline)] bg-[var(--bg-elev)]/70 px-4 py-3">
+          <div className="pointer-events-none absolute inset-0 micro-grid opacity-25" />
           <div className="flex items-center gap-3">
             {/* HR Avatar */}
             <div
@@ -463,6 +549,10 @@ export default function ChatBubblePanel({
               <p className="text-[10px] text-slate-500 mt-0.5 truncate">
                 {hrPersona.tagline}
               </p>
+              <div className="mt-1.5 flex flex-wrap gap-1.5">
+                <span className="ai-chip rounded-full px-2 py-0.5 text-[9px] font-bold">AI 实时拦截已开启</span>
+                <span className="strategy-chip rounded-full px-2 py-0.5 text-[9px] font-bold">谈判心理挖掘</span>
+              </div>
             </div>
 
             {/* Patience bar */}
@@ -501,20 +591,21 @@ export default function ChatBubblePanel({
       )}
 
       {/* Messages */}
-      <div className="max-h-[420px] overflow-y-auto py-1">
-        {actions.length === 0 && !isThinking && (
+      <div className="relative max-h-[420px] overflow-y-auto py-1">
+        <div className="pointer-events-none absolute inset-x-0 top-0 h-8 bg-gradient-to-b from-[var(--bg-panel)] to-transparent z-10" />
+        {visibleActions.length === 0 && !isThinking && (
           <div className="text-center py-8">
             <p className="text-xs text-slate-600">等待谈判开始…</p>
           </div>
         )}
 
         <RoundGroupedMessages
-          actions={actions}
+          actions={visibleActions}
           hrPersona={hrPersona}
           hrPatience={hrPatience}
           isThinking={isThinking}
           needsTypewriter={needsTypewriter && !isThinking}
-          typewriterTrigger={actions.length}
+          typewriterTrigger={visibleActions.length}
           lastHrActionIdx={lastHrActionIdx}
         />
 

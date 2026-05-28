@@ -38,10 +38,10 @@ export function useSetup(p: SetupParams) {
     p.setSessionId(data.session_id || "");
     p.setGameState(data.game_state || null);
     p.setGameRound(data.round || 0);
-    p.setActions((data.round_actions || []) as Record<string, unknown>[]);
+    p.setActions(data.round_actions || []);
     p.setPrompt(data.prompt || "");
-    p.setOptions((data.options || []) as Record<string, unknown>[]);
-    p.setHrPersona((data.hr_persona as Record<string, unknown>) || null);
+    p.setOptions(data.options || []);
+    p.setHrPersona(data.hr_persona || null);
     p.setHrPatience(data.hr_patience ?? 1.0);
     p.setInfoCards(data.info_cards || []);
     p.setTrustState(data.trust_state || null);
@@ -57,18 +57,20 @@ export function useSetup(p: SetupParams) {
       const blob = new Blob([demoText], { type: "text/plain" });
       const uploadResult = await uploadResume(blob, "demo.txt", "text");
       if (uploadResult.status !== "ok") { p.setError(String(uploadResult.message || "解析失败")); p.setLoading(false); return; }
-      p.setResumeData(uploadResult.resume as Record<string, unknown>);
-      p.setResumePreview(uploadResult.resume as Record<string, unknown>);
+      if (!uploadResult.resume) { p.setError("简历解析为空"); p.setLoading(false); return; }
+      p.setResumeData(uploadResult.resume);
+      p.setResumePreview(uploadResult.resume);
 
       p.setProgress("正在分析岗位...");
       const jdResult = await parseJD(DEMO_JD_TEXT);
       if (jdResult.status !== "ok") { p.setError(String(jdResult.message || "JD解析失败")); p.setLoading(false); return; }
-      p.setJobData(jdResult.job as Record<string, unknown>);
+      if (!jdResult.job) { p.setError("JD解析为空"); p.setLoading(false); return; }
+      p.setJobData(jdResult.job);
 
       p.setProgress("正在初始化博弈...");
       const initResult = await initGame({
-        resume: uploadResult.resume as Record<string, unknown>,
-        job: jdResult.job as Record<string, unknown>,
+        resume: uploadResult.resume,
+        job: jdResult.job,
         strategy: "balanced", market_condition: "normal", model: p.model,
       });
       applyInitResponse(initResult);
@@ -84,8 +86,9 @@ export function useSetup(p: SetupParams) {
       const sourceType = f.name.endsWith(".pdf") ? "pdf" : "text";
       const result = await uploadResume(f, undefined, sourceType);
       if (result.status !== "ok") { p.setError(String(result.message || "简历解析失败")); p.setLoading(false); return; }
-      p.setResumeData(result.resume as Record<string, unknown>);
-      p.setResumePreview(result.resume as Record<string, unknown>);
+      if (!result.resume) { p.setError("简历解析为空"); p.setLoading(false); return; }
+      p.setResumeData(result.resume);
+      p.setResumePreview(result.resume);
     } catch (e: unknown) { p.setError(e instanceof Error ? e.message : "上传失败"); }
     p.setLoading(false); p.setProgress("");
   }, []);
@@ -99,12 +102,13 @@ export function useSetup(p: SetupParams) {
     try {
       const jdResult = await parseJD(jdText);
       if (jdResult.status !== "ok") { p.setError(String(jdResult.message || "岗位解析失败")); p.setLoading(false); return; }
-      p.setJobData(jdResult.job as Record<string, unknown>);
+      if (!jdResult.job) { p.setError("岗位解析为空"); p.setLoading(false); return; }
+      p.setJobData(jdResult.job);
 
       p.setProgress("正在初始化博弈...");
       const initResult = await initGame({
         resume: p.resumeData!,
-        job: jdResult.job as Record<string, unknown>,
+        job: jdResult.job,
         strategy: p.strategy, market_condition: p.market, model: p.model,
       });
       applyInitResponse(initResult);

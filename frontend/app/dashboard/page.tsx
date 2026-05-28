@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import Link from "next/link";
 import { listGames, type GameSession } from "@/lib/game-api";
-import { Play, Clock, Trophy, XCircle, Minus, TrendingUp, User, Building2, ArrowRight, Loader2, RefreshCw } from "lucide-react";
+import { Play, Clock, Trophy, XCircle, Minus, TrendingUp, User, Building2, ArrowRight, Loader2, RefreshCw, UserRound } from "lucide-react";
 
 // ── Types ──────────────────────────────────────────────────────────
 
@@ -15,6 +15,30 @@ interface FunnelStats {
   success: number;
   rejected: number;
 }
+
+const REPLAY_ROUNDS = [
+  {
+    label: "Round 1",
+    text: "HR 首轮压价，候选人保留锚点。",
+    tag: "风险低",
+    note: "当前局势稳定。继续保持锚点，避免过早亮出外部 Offer。",
+    points: [[160, 45], [230, 118], [160, 205], [70, 130]],
+  },
+  {
+    label: "Round 2",
+    text: "HR 压低预算口径，候选人补充项目影响力。",
+    tag: "承压",
+    note: "风险外扩，耐心内收。应减少解释性话术，改用可验证的项目贡献。",
+    points: [[158, 58], [218, 116], [160, 224], [94, 130]],
+  },
+  {
+    label: "Round 3",
+    text: "释放外部 Offer，换取总包上调。",
+    tag: "关键",
+    note: "筹码扩张，风险回落。下一步应锁定总包结构，而非继续追逐口头涨幅。",
+    points: [[158, 42], [252, 112], [160, 188], [78, 130]],
+  },
+];
 
 // ── Status helpers ─────────────────────────────────────────────────
 
@@ -69,12 +93,11 @@ function SessionCard({ session, isActive, onClick }: { session: GameSession; isA
   return (
     <motion.button
       onClick={onClick}
-      className={`w-full text-left rounded-xl border p-3 transition-all ${
+      className={`w-full text-left rounded-2xl border p-3 transition-all duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] hover:translate-x-3 ${
         isActive
-          ? "bg-slate-800/80 border-cyan-500/30 shadow-lg shadow-cyan-500/5"
-          : "bg-slate-900/40 border-slate-800 hover:border-slate-700 hover:bg-slate-800/50"
+          ? "bg-white/[0.04] border-white/25"
+          : "bg-white/[0.025] border-white/[0.05] hover:border-white/25"
       }`}
-      whileHover={{ scale: 1.01 }}
       whileTap={{ scale: 0.99 }}
     >
       <div className="flex items-start justify-between gap-2">
@@ -122,7 +145,7 @@ function SessionCard({ session, isActive, onClick }: { session: GameSession; isA
 
 // ── Detail Panel ───────────────────────────────────────────────────
 
-function DetailPanel({ session }: { session: GameSession | null }) {
+function DetailPanel({ session, replayStep, onStep }: { session: GameSession | null; replayStep: number; onStep: () => void }) {
   if (!session) {
     return (
       <div className="h-full flex flex-col items-center justify-center text-slate-600">
@@ -193,19 +216,61 @@ function DetailPanel({ session }: { session: GameSession | null }) {
         )}
 
         {/* Session Info */}
-        <div className="rounded-xl bg-slate-900/30 border border-slate-800/50 p-3 space-y-2">
+        <div className="rounded-xl bg-white/[0.025] border border-white/[0.05] p-3 space-y-2">
           <div className="text-[10px] text-slate-600 uppercase tracking-wider font-bold">会话信息</div>
           <div className="text-xs text-slate-500 font-mono">ID: {session.session_id}</div>
           <div className="text-xs text-slate-500">候选人: {session.candidate_name}</div>
+        </div>
+
+        <div className="rounded-xl bg-white/[0.025] border border-white/[0.05] p-4">
+          <div className="mb-3 flex items-center justify-between">
+            <div className="text-[10px] font-bold uppercase tracking-wider text-slate-500">Round Replay</div>
+            <button
+              onClick={onStep}
+              disabled={replayStep >= REPLAY_ROUNDS.length - 1}
+              className="rounded-full border border-white/10 px-3 py-1 text-[10px] font-bold text-slate-300 transition hover:border-white/25 disabled:cursor-default disabled:opacity-30"
+            >
+              步进推演 &gt;
+            </button>
+          </div>
+          <div className="space-y-2">
+            {REPLAY_ROUNDS.slice(0, replayStep + 1).map((round, index) => (
+              <motion.div
+                key={round.label}
+                initial={{ opacity: 0, y: 6 }}
+                animate={{ opacity: index === replayStep ? 1 : 0.3, y: 0 }}
+                transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
+                className="grid grid-cols-[64px_1fr_auto] items-center gap-2 border-b border-white/[0.05] pb-2 text-xs text-slate-400"
+              >
+                <b className="text-slate-300">{round.label}</b>
+                <TypewriterText text={round.text} active={index === replayStep} />
+                <b className="text-slate-400">{round.tag}</b>
+              </motion.div>
+            ))}
+          </div>
         </div>
       </div>
     </div>
   );
 }
 
+function TypewriterText({ text, active }: { text: string; active: boolean }) {
+  const [display, setDisplay] = useState(active ? "" : text);
+
+  useEffect(() => {
+    if (!active) {
+      return;
+    }
+    const timers = [...text].map((_, index) => window.setTimeout(() => setDisplay(text.slice(0, index + 1)), index * 18));
+    return () => timers.forEach(window.clearTimeout);
+  }, [active, text]);
+
+  return <span>{display}</span>;
+}
+
 // ── AI Advisor Panel ───────────────────────────────────────────────
 
-function AIAdvisorPanel({ session }: { session: GameSession | null }) {
+function AIAdvisorPanel({ session, replayStep }: { session: GameSession | null; replayStep: number }) {
   if (!session) {
     return (
       <div className="h-full flex flex-col items-center justify-center text-slate-700 px-4">
@@ -225,11 +290,33 @@ function AIAdvisorPanel({ session }: { session: GameSession | null }) {
     session.strategy === "conservative" && "保守策略稳扎稳打，但可能错过溢价空间。",
   ].filter(Boolean);
 
+  const points = REPLAY_ROUNDS[replayStep].points;
+  const pointString = points.map((point) => point.join(",")).join(" ");
+  const [trust, leverage, risk, patience] = points;
+
   return (
     <div className="h-full overflow-y-auto p-4">
-      <div className="flex items-center gap-2 mb-4">
+        <div className="flex items-center gap-2 mb-4">
         <div className="w-6 h-6 rounded-lg bg-cyan-500/10 border border-cyan-500/20 flex items-center justify-center">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-cyan-400"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/></svg>
+        </div>
+
+        <div className="relative mb-4 h-[220px]">
+          <svg viewBox="0 0 330 260" className="absolute inset-0 h-full w-full" aria-hidden="true">
+            <polygon points={pointString} className="fill-slate-500/10 stroke-slate-500/70 transition-all duration-500 ease-[cubic-bezier(0.16,1,0.3,1)]" strokeWidth="1.5" />
+            <line x1={trust[0]} y1={trust[1]} x2={leverage[0]} y2={leverage[1]} className="stroke-slate-500/50 transition-all duration-500 ease-[cubic-bezier(0.16,1,0.3,1)]" />
+            <line x1={leverage[0]} y1={leverage[1]} x2={risk[0]} y2={risk[1]} className="stroke-slate-500/50 transition-all duration-500 ease-[cubic-bezier(0.16,1,0.3,1)]" />
+            <line x1={risk[0]} y1={risk[1]} x2={patience[0]} y2={patience[1]} className="stroke-slate-500/50 transition-all duration-500 ease-[cubic-bezier(0.16,1,0.3,1)]" />
+            <line x1={patience[0]} y1={patience[1]} x2={trust[0]} y2={trust[1]} className="stroke-slate-500/50 transition-all duration-500 ease-[cubic-bezier(0.16,1,0.3,1)]" />
+          </svg>
+          <RadarNode point={trust} label="信任" value="72" />
+          <RadarNode point={leverage} label="筹码" value="84" />
+          <RadarNode point={risk} label="风险" value={replayStep === 1 ? "46" : replayStep === 2 ? "31" : "28"} />
+          <RadarNode point={patience} label="耐心" value={replayStep === 1 ? "44" : "61"} />
+        </div>
+
+        <div className="mb-4 rounded-lg border border-white/[0.05] bg-white/[0.025] p-3 text-xs leading-relaxed text-slate-400">
+          {REPLAY_ROUNDS[replayStep].note}
         </div>
         <span className="text-sm font-bold text-slate-300">AI 顾问</span>
       </div>
@@ -266,6 +353,17 @@ function AIAdvisorPanel({ session }: { session: GameSession | null }) {
   );
 }
 
+function RadarNode({ point, label, value }: { point: number[]; label: string; value: string }) {
+  return (
+    <div
+      className="absolute grid h-[58px] w-[58px] place-items-center rounded-full border border-white/[0.06] bg-white/[0.02] text-center text-[10px] font-bold leading-tight text-slate-400 transition-all duration-500 ease-[cubic-bezier(0.16,1,0.3,1)]"
+      style={{ left: point[0] - 29, top: point[1] - 29 }}
+    >
+      {label}<br />{value}
+    </div>
+  );
+}
+
 // ── Main Dashboard ─────────────────────────────────────────────────
 
 export default function DashboardPage() {
@@ -273,6 +371,7 @@ export default function DashboardPage() {
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [replayStep, setReplayStep] = useState(0);
 
   const selectedSession = sessions.find((s) => s.session_id === selectedId) || null;
 
@@ -305,13 +404,16 @@ export default function DashboardPage() {
   }, [selectedId]);
 
   useEffect(() => {
-    loadSessions();
+    const timer = window.setTimeout(() => {
+      void loadSessions();
+    }, 0);
+    return () => window.clearTimeout(timer);
   }, [loadSessions]);
 
   return (
-    <div className="h-[calc(100vh-56px)] bg-[#050508] flex flex-col">
+    <div className="flex h-[calc(100vh-56px)] flex-col bg-[#05070a]">
       {/* Top: Funnel + Stats */}
-      <div className="border-b border-slate-800/60 bg-[#0a0c10] px-4 py-3">
+      <div className="border-b border-white/[0.05] bg-white/[0.025] px-4 py-3">
         <div className="max-w-7xl mx-auto">
           <div className="flex items-center justify-between mb-2">
             <div className="flex items-center gap-4">
@@ -326,14 +428,20 @@ export default function DashboardPage() {
             <div className="flex items-center gap-2">
               <button
                 onClick={loadSessions}
-                className="p-1.5 rounded-md text-slate-500 hover:text-slate-300 hover:bg-slate-800 transition"
+                className="rounded-full p-1.5 text-slate-500 transition hover:bg-slate-800 hover:text-slate-300"
                 title="刷新"
               >
                 <RefreshCw size={14} className={loading ? "animate-spin" : ""} />
               </button>
               <Link
+                href="/profile"
+                className="flex items-center gap-1.5 rounded-full border border-white/10 bg-white/[0.03] px-3 py-1.5 text-xs font-bold text-slate-400 transition hover:text-cyan-200"
+              >
+                <UserRound size={12} /> 用户信息
+              </Link>
+              <Link
                 href="/play"
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-cyan-600 text-white text-xs font-bold hover:bg-cyan-500 transition"
+                className="primary-action flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-bold transition"
               >
                 <Play size={12} /> 新投递
               </Link>
@@ -344,10 +452,10 @@ export default function DashboardPage() {
       </div>
 
       {/* Three-column layout */}
-      <div className="flex-1 flex min-h-0 max-w-7xl mx-auto w-full">
+      <div className="mx-auto flex min-h-0 w-full max-w-7xl flex-1">
         {/* Left: Session List */}
-        <div className="w-72 border-r border-slate-800/60 flex flex-col">
-          <div className="px-3 py-2 border-b border-slate-800/60 flex items-center justify-between">
+        <div className="w-72 border-r border-white/[0.05] flex flex-col">
+          <div className="px-3 py-2 border-b border-white/[0.05] flex items-center justify-between">
             <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">投递列表</span>
             <span className="text-[10px] text-slate-600">{sessions.length} 条</span>
           </div>
@@ -375,7 +483,10 @@ export default function DashboardPage() {
                   key={session.session_id}
                   session={session}
                   isActive={session.session_id === selectedId}
-                  onClick={() => setSelectedId(session.session_id)}
+                  onClick={() => {
+                    setSelectedId(session.session_id);
+                    setReplayStep(0);
+                  }}
                 />
               ))}
             </AnimatePresence>
@@ -383,13 +494,13 @@ export default function DashboardPage() {
         </div>
 
         {/* Center: Detail */}
-        <div className="flex-1 border-r border-slate-800/60">
-          <DetailPanel session={selectedSession} />
+        <div className="flex-1 border-r border-white/[0.05]">
+          <DetailPanel session={selectedSession} replayStep={replayStep} onStep={() => setReplayStep((step) => Math.min(step + 1, REPLAY_ROUNDS.length - 1))} />
         </div>
 
         {/* Right: AI Advisor */}
         <div className="w-64">
-          <AIAdvisorPanel session={selectedSession} />
+          <AIAdvisorPanel session={selectedSession} replayStep={replayStep} />
         </div>
       </div>
     </div>

@@ -2,18 +2,42 @@
 
 import { useState, useCallback } from "react";
 import { API_BASE } from "@/lib/api";
-import type { NegotiationParams } from "./types";
+import type {
+  DeliberationView,
+  DeliberationOptionView,
+  FinalResultView,
+  GameOption,
+  GameStateView,
+  InfoCardView,
+  NegotiationParams,
+  RoundActionView,
+  TrustStateView,
+} from "./types";
+import type { RoundInsight } from "../components/RoundInsightPanel";
 
-export interface GameState {
-  round: number; max_rounds: number;
-  public_offer: number | null; public_status: string;
-  competition_intensity: number; market_adjustment: number;
-  scores: Record<string, number>; interviewer_recommendation: string;
+interface StreamEvent {
+  type?: string;
+  phase?: "analyze" | "decide";
+  text?: string;
+  options?: DeliberationOptionView[] | GameOption[];
+  result?: DeliberationView;
+  final_result?: FinalResultView;
+  equilibrium?: Record<string, unknown>;
+  message?: string;
+  game_state?: GameStateView;
+  last_hr_action?: RoundActionView;
+  hr_deliberation?: DeliberationView;
+  hr_patience?: number;
+  info_cards?: InfoCardView[];
+  trust_state?: TrustStateView;
+  info_narrative?: string;
+  round_insight?: RoundInsight;
+  round?: number;
+  prompt?: string;
 }
 
-export interface RoundAction {
-  player: string; action_type: string; params: Record<string, unknown>;
-  reasoning: string; round: number;
+function isDeliberationOptions(options: DeliberationOptionView[] | GameOption[] | undefined): options is DeliberationOptionView[] {
+  return Array.isArray(options) && options.every((option) => "expected_utility" in option && "risk_level" in option);
 }
 
 export function useNegotiation(p: NegotiationParams) {
@@ -21,10 +45,10 @@ export function useNegotiation(p: NegotiationParams) {
   const [counterSalary, setCounterSalary] = useState<number | null>(null);
   const [showCounterInput, setShowCounterInput] = useState(false);
 
-  const handleSSEEvent = useCallback((event: Record<string, unknown>) => {
+  const handleSSEEvent = useCallback((event: StreamEvent) => {
     switch (event.type) {
       case "phase":
-        p.setStreamingPhase(event.phase as "analyze" | "decide");
+        if (event.phase) p.setStreamingPhase(event.phase);
         break;
       case "chunk":
         p.setStreamingText((prev: string) => prev + String(event.text || ""));
@@ -32,29 +56,30 @@ export function useNegotiation(p: NegotiationParams) {
       case "options":
         p.setHrDeliberation({
           situation: "",
-          options: event.options || [],
+          options: isDeliberationOptions(event.options) ? event.options : [],
           selected_index: 0,
           confidence: 0.5,
         });
         break;
       case "done":
-        if (event.result) p.setHrDeliberation(event.result as Record<string, unknown>);
+        if (event.result) p.setHrDeliberation(event.result);
         p.setStreamingPhase(null);
         p.setHrThinking(false);
         break;
       case "game_over":
-        p.setFinalResult((event.final_result as Record<string, unknown>) || null);
-        p.setEquilibrium((event.equilibrium as Record<string, unknown>) || null);
+        if (event.round_insight) p.setRoundInsight(event.round_insight);
+        p.setFinalResult(event.final_result || null);
+        p.setEquilibrium(event.equilibrium || null);
         p.setOutcomeMessage(String(event.message || ""));
-        p.setGameState(event.game_state as Record<string, unknown>);
+        if (event.game_state) p.setGameState(event.game_state);
         p.setStep(3);
         p.saveToHistory(
-          (event.final_result as Record<string, unknown>) || null,
-          (event.equilibrium as Record<string, unknown>) || null,
+          event.final_result || null,
+          event.equilibrium || null,
           String(event.message || "")
         );
         {
-          const fr = (event.final_result as Record<string, unknown>) || {};
+          const fr = event.final_result || {};
           if (fr.outcome === "accepted") {
             p.tryUnlockAchievement("deal_closed");
             if (p.gameRound + 1 <= 3) p.tryUnlockAchievement("speed_demon");
@@ -67,16 +92,17 @@ export function useNegotiation(p: NegotiationParams) {
         }
         break;
       case "round_complete":
-        if (event.last_hr_action) p.setActions((prev) => [...prev, event.last_hr_action as Record<string, unknown>]);
-        if (event.hr_deliberation) p.setHrDeliberation(event.hr_deliberation as Record<string, unknown>);
-        if (event.hr_patience !== undefined) p.setHrPatience(event.hr_patience as number);
-        if (event.info_cards) p.setInfoCards(event.info_cards as any[]);
-        if (event.trust_state) p.setTrustState(event.trust_state as { hr_trust_in_candidate: number; trust_label: string });
+        if (event.last_hr_action) p.setActions((prev) => [...prev, event.last_hr_action as RoundActionView]);
+        if (event.hr_deliberation) p.setHrDeliberation(event.hr_deliberation);
+        if (event.hr_patience !== undefined) p.setHrPatience(event.hr_patience);
+        if (event.info_cards) p.setInfoCards(event.info_cards);
+        if (event.trust_state) p.setTrustState(event.trust_state);
         if (event.info_narrative) p.setInfoNarrative(String(event.info_narrative));
-        p.setGameState(event.game_state as Record<string, unknown>);
-        p.setGameRound(event.round as number);
+        if (event.round_insight) p.setRoundInsight(event.round_insight);
+        if (event.game_state) p.setGameState(event.game_state);
+        if (typeof event.round === "number") p.setGameRound(event.round);
         p.setPrompt(String(event.prompt || ""));
-        p.setOptions((event.options || []) as Record<string, unknown>[]);
+        p.setOptions((event.options || []) as GameOption[]);
         p.setStreamingText("");
         p.setStreamingPhase(null);
         break;
@@ -89,6 +115,7 @@ export function useNegotiation(p: NegotiationParams) {
   const handleAct = useCallback(async (actionType: string, salaryAmount?: number, message?: string) => {
     setGameLoading(true); setShowCounterInput(false); p.setHrThinking(true);
     p.setStreamingText(""); p.setStreamingPhase(null); p.setHrDeliberation(null);
+    p.setRoundInsight(null);
 
     const reasoning = message || (actionType === "accept" ? "接受报价" : actionType === "reject" ? "拒绝报价" : `还价 ${salaryAmount}K`);
     p.setActions((prev) => [...prev, {
@@ -134,7 +161,7 @@ export function useNegotiation(p: NegotiationParams) {
         for (const line of lines) {
           if (!line.startsWith("data: ")) continue;
           try {
-            const event = JSON.parse(line.slice(6));
+            const event = JSON.parse(line.slice(6)) as StreamEvent;
             handleSSEEvent(event);
           } catch {}
         }
@@ -142,7 +169,7 @@ export function useNegotiation(p: NegotiationParams) {
 
       if (buffer.startsWith("data: ")) {
         try {
-          const event = JSON.parse(buffer.slice(6));
+          const event = JSON.parse(buffer.slice(6)) as StreamEvent;
           handleSSEEvent(event);
         } catch {}
       }

@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 
-interface TimelineEvent {
+export interface TimelineEvent {
   year: number;
   month: number;
   event_type: string;
@@ -16,7 +16,7 @@ interface TimelineEvent {
   icon: string;
 }
 
-interface Universe {
+export interface Universe {
   universe_id: string;
   universe_label: string;
   universe_emoji: string;

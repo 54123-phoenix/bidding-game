@@ -41,7 +41,10 @@ export default function RecentSessions({ onContinue }: RecentSessionsProps) {
   }, []);
 
   useEffect(() => {
-    load();
+    const timer = window.setTimeout(() => {
+      void load();
+    }, 0);
+    return () => window.clearTimeout(timer);
   }, [load]);
 
   if (loading) {
@@ -61,14 +64,13 @@ export default function RecentSessions({ onContinue }: RecentSessionsProps) {
 
   return (
     <motion.div
-      className="mt-10 w-full max-w-2xl mx-auto"
+      className="mx-auto mt-10 w-full max-w-3xl"
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.5, delay: 0.7 }}
     >
       <div className="flex items-center gap-2 mb-3 px-1">
-        <div className="w-1 h-3 rounded-full bg-gradient-to-b from-cyan-400 to-blue-500" />
-        <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500">
+        <span className="text-xs font-semibold text-slate-500">
           最近模拟
         </span>
         <span className="text-[10px] text-slate-600 ml-auto">
@@ -95,7 +97,7 @@ export default function RecentSessions({ onContinue }: RecentSessionsProps) {
               <Link
                 href={href}
                 onClick={() => onContinue?.(session.session_id)}
-                className="block min-w-[180px] rounded-xl border border-slate-800 bg-slate-900/40 p-3 hover:bg-slate-800/60 hover:border-slate-700 transition group"
+                 className="surface-base group block min-w-[180px] rounded-2xl p-3 transition hover:border-slate-600/50"
               >
                 <div className="flex items-center justify-between mb-2">
                   <span className="text-xs font-semibold text-slate-300 truncate max-w-[100px]">

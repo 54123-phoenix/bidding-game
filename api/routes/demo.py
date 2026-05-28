@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from fastapi import APIRouter, Query
+from fastapi import APIRouter, HTTPException, Query
 
 from data.demo_profiles import JOBS, RESUMES
 from game.engine import BiddingGameEngine
@@ -30,9 +30,15 @@ async def demo(
       - Expert match: res-thomas-lin / job-ali-staff-architect
     """
     if resume_key not in RESUMES:
-        return {"status": "error", "message": f"Unknown resume_key. Available: {list(RESUMES.keys())}"}
+        raise HTTPException(
+            status_code=400,
+            detail=f"Unknown resume_key. Available: {list(RESUMES.keys())}",
+        )
     if job_key not in JOBS:
-        return {"status": "error", "message": f"Unknown job_key. Available: {list(JOBS.keys())}"}
+        raise HTTPException(
+            status_code=400,
+            detail=f"Unknown job_key. Available: {list(JOBS.keys())}",
+        )
 
     resume = RESUMES[resume_key]
     job = JOBS[job_key]

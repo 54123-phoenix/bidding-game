@@ -20,35 +20,25 @@ export default function NegotiationArena({
 }: NegotiationArenaProps) {
   return (
     <motion.div
-      className="relative min-h-[calc(100vh-80px)] overflow-hidden"
+      className="product-shell relative min-h-[calc(100vh-80px)] overflow-hidden"
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       transition={{ duration: 0.6 }}
     >
-      <div className="absolute inset-0 bg-[var(--bg-canvas)]" />
-
-      <div className="absolute inset-0 opacity-30">
+      <div className="absolute inset-0 opacity-25">
         <div
           className="absolute inset-0"
           style={{
             backgroundImage: `
-              radial-gradient(circle at 20% 30%, var(--candidate-blue-glow) 0%, transparent 50%),
-              radial-gradient(circle at 80% 70%, var(--hr-purple-glow) 0%, transparent 50%)
+              radial-gradient(circle at 12% 24%, var(--candidate-blue-glow) 0%, transparent 42%),
+              radial-gradient(circle at 88% 28%, var(--hr-purple-glow) 0%, transparent 44%),
+              radial-gradient(circle at 50% 110%, rgba(34,211,238,0.10) 0%, transparent 52%)
             `,
           }}
         />
       </div>
 
-      <div
-        className="absolute inset-0 opacity-[0.03]"
-        style={{
-          backgroundImage: `
-            linear-gradient(var(--border-hairline) 1px, transparent 1px),
-            linear-gradient(90deg, var(--border-hairline) 1px, transparent 1px)
-          `,
-          backgroundSize: "40px 40px",
-        }}
-      />
+      <div className="absolute inset-0 quiet-grid opacity-35" />
 
       {isThinking && (
         <motion.div

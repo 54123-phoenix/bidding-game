@@ -1,5 +1,7 @@
 "use client";
 
+/* eslint-disable @typescript-eslint/no-explicit-any */
+
 import { useState } from "react";
 import { API_BASE } from "@/lib/api";
 
@@ -41,34 +43,38 @@ export default function AnalysisPage() {
   };
 
   return (
-    <div className="max-w-5xl mx-auto px-4 py-8">
-      <h1 className="text-3xl font-bold mb-2">多维评估报告</h1>
-      <p className="text-slate-400 mb-6 text-sm">基于中国互联网行业特有的 12 维评估体系，对候选人与岗位的匹配度进行结构化分析。</p>
+    <div className="product-shell min-h-[calc(100vh-56px)]">
+    <div className="max-w-5xl mx-auto px-4 py-10">
+      <div className="mb-8">
+        <div className="text-xs font-semibold text-[var(--accent-cyan)]">专业分析报告</div>
+        <h1 className="mt-2 text-3xl font-black text-[var(--text-primary)]">多维评估报告</h1>
+        <p className="mt-3 max-w-3xl text-sm leading-7 text-[var(--text-secondary)]">基于中国互联网行业特有的评估体系，对候选人与岗位的匹配度进行结构化分析。动态博弈维度会在谈判复盘中呈现。</p>
+      </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+      <div className="surface-raised grid grid-cols-1 md:grid-cols-2 gap-4 mb-6 rounded-3xl p-5">
         <div>
           <label className="block text-sm text-slate-400 mb-1">简历数据（JSON）</label>
           <textarea value={resumeJson} onChange={(e) => setResumeJson(e.target.value)}
             placeholder='{"name": "...", "skills": [...], "education": [...], "experience": [...], "competitions": [...]}'
-            rows={8} className="bg-slate-800 border border-slate-700 rounded-lg px-4 py-2 w-full text-sm font-mono" />
+            rows={8} className="surface-base w-full rounded-2xl px-4 py-3 text-sm font-mono outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-cyan)]/40" />
         </div>
         <div>
           <label className="block text-sm text-slate-400 mb-1">岗位数据（JSON）</label>
           <textarea value={jobJson} onChange={(e) => setJobJson(e.target.value)}
             placeholder='{"title": "...", "company": "...", "level": "P7", "required_skills": [...], "optional_skills": [...]}'
-            rows={8} className="bg-slate-800 border border-slate-700 rounded-lg px-4 py-2 w-full text-sm font-mono" />
+            rows={8} className="surface-base w-full rounded-2xl px-4 py-3 text-sm font-mono outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-cyan)]/40" />
         </div>
       </div>
 
       <button onClick={runAnalysis} disabled={loading}
-        className="px-6 py-3 bg-cyan-600 hover:bg-cyan-500 disabled:opacity-50 rounded-lg font-medium transition-colors mb-8">
+        className="primary-action mb-8 rounded-2xl px-6 py-3 font-medium transition disabled:opacity-50">
         {loading ? "分析中..." : "开始分析"}
       </button>
 
-      {error && <div className="bg-red-900/30 border border-red-800 rounded-lg p-4 mb-6 text-red-300 text-sm">{error}</div>}
+      {error && <div className="surface-base mb-6 rounded-2xl p-4 text-sm text-red-300">{error}</div>}
 
       {result && (
-        <div className="bg-slate-900 border border-slate-800 rounded-xl p-6">
+        <div className="surface-raised rounded-3xl p-6">
           <div className="flex items-end gap-3 mb-6">
             <span className="text-4xl font-bold text-cyan-400">{(result.composite_score * 100).toFixed(0)}%</span>
             <span className="text-sm text-slate-500 mb-1">综合评分（{result.dimension_count} 个维度）</span>
@@ -76,7 +82,7 @@ export default function AnalysisPage() {
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {result.dimensions.map((d: any) => (
-              <div key={d.dimension} className="bg-slate-800/50 rounded-lg p-4">
+              <div key={d.dimension} className="surface-base rounded-2xl p-4">
                 <div className="flex justify-between items-start mb-2">
                   <div>
                     <div className="text-sm font-medium text-white">
@@ -116,6 +122,7 @@ export default function AnalysisPage() {
           </div>
         </div>
       )}
+    </div>
     </div>
   );
 }

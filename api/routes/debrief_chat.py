@@ -8,6 +8,7 @@ from __future__ import annotations
 
 from fastapi import APIRouter
 from pydantic import BaseModel, Field
+from models.schemas import GameState
 
 router = APIRouter(tags=["Debrief-Chat"])
 
@@ -23,21 +24,36 @@ class DebriefChatRequest(BaseModel):
     message: str = Field(default="", description="User's question (empty = auto-generate summary)")
 
 
+def _obj_get(obj, key: str, default=None):
+    if isinstance(obj, dict):
+        return obj.get(key, default)
+    return getattr(obj, key, default)
+
+
+def _ensure_state(state):
+    if isinstance(state, dict):
+        try:
+            return GameState.model_validate(state)
+        except Exception:
+            return state
+    return state
+
+
 def _build_system_prompt(session: dict) -> str:
     """Build a data-grounded system prompt from game results."""
-    state = session["state"]
+    state = _ensure_state(session["state"])
     fr = session.get("final_result") or {}
     eq_data = session.get("equilibrium") or {}
-    actions = getattr(state, "action_history", [])
+    actions = _obj_get(state, "action_history", []) or session.get("actions", []) or []
 
     # ── Outcome ──
-    outcome = fr.get("outcome", state.public_status or "unknown")
+    outcome = fr.get("outcome", _obj_get(state, "public_status", "unknown") or "unknown")
     prob = fr.get("success_probability", 0)
     rounds = fr.get("negotiation_rounds", 0)
     salary = fr.get("final_salary", "无")
 
     # ── Interview scores ──
-    scores = getattr(state, "scores", {}) or {}
+    scores = _obj_get(state, "scores", {}) or {}
     coding = scores.get("coding", "N/A")
     design = scores.get("system_design", "N/A")
     domain = scores.get("domain_expertise", "N/A")
@@ -47,29 +63,29 @@ def _build_system_prompt(session: dict) -> str:
     # ── Risk flags ──
     risk_flags = []
     for a in reversed(actions if hasattr(actions, '__iter__') else []):
-        if getattr(a, "player", "") == "interviewer":
-            risk_flags = getattr(a, "params", {}).get("risk_flags", [])
+        if _obj_get(a, "player", "") == "interviewer":
+            risk_flags = (_obj_get(a, "params", {}) or {}).get("risk_flags", [])
             break
 
     # ── Candidate / Job ──
     resume = session.get("resume")
     job = session.get("job")
-    candidate_name = getattr(resume, "name", "候选人") if resume else "候选人"
-    skills = getattr(resume, "skills", []) if resume else []
-    education = getattr(resume, "education", []) if resume else []
-    experience = getattr(resume, "experience", []) if resume else []
-    job_title = getattr(job, "title", "") if job else ""
-    job_company = getattr(job, "company", "") if job else ""
-    job_level = getattr(job, "level", "") if job else ""
-    job_skills = getattr(job, "required_skills", []) if job else []
+    candidate_name = _obj_get(resume, "name", "候选人") if resume else "候选人"
+    skills = _obj_get(resume, "skills", []) if resume else []
+    education = _obj_get(resume, "education", []) if resume else []
+    experience = _obj_get(resume, "experience", []) if resume else []
+    job_title = _obj_get(job, "title", "") if job else ""
+    job_company = _obj_get(job, "company", "") if job else ""
+    job_level = _obj_get(job, "level", "") if job else ""
+    job_skills = _obj_get(job, "required_skills", []) if job else []
 
     # ── Negotiation log ──
     neg_log = []
     for a in (actions if hasattr(actions, '__iter__') else []):
-        player = getattr(a, "player", "")
-        a_type = getattr(a, "action_type", "")
-        reasoning = getattr(a, "reasoning", "")
-        rnd = getattr(a, "round", 0)
+        player = _obj_get(a, "player", "")
+        a_type = _obj_get(a, "action_type", "")
+        reasoning = _obj_get(a, "reasoning", "")
+        rnd = _obj_get(a, "round", 0)
         if player in ("candidate", "hr"):
             label = "你" if player == "candidate" else "HR"
             neg_log.append(f"第{rnd+1}轮 {label}: {a_type} — {reasoning[:100]}")
@@ -134,7 +150,7 @@ async def debrief_chat(request: DebriefChatRequest):
                 {"role": "system", "content": system_prompt},
                 {"role": "user", "content": user_msg},
             ]
-            reply = await call_llm_chat(messages, temperature=0.3, max_retries=2)
+            reply = await call_llm_chat(messages, temperature=0.3, max_retries=2, task_type="debrief")
             reply = reply.strip()
         else:
             reply = _rule_based_reply(session, user_msg)
@@ -151,11 +167,12 @@ def _rule_based_reply(session: dict, user_msg: str) -> str:
     prob = fr.get("success_probability", 0)
     recommendation = fr.get("recommendation", "")
 
-    state = session["state"]
+    state = _ensure_state(session["state"])
     risk_flags = []
-    for a in getattr(state, "action_history", []):
-        if getattr(a, "player", "") == "interviewer":
-            risk_flags = getattr(a, "params", {}).get("risk_flags", [])
+    actions = _obj_get(state, "action_history", []) or session.get("actions", []) or []
+    for a in actions:
+        if _obj_get(a, "player", "") == "interviewer":
+            risk_flags = (_obj_get(a, "params", {}) or {}).get("risk_flags", [])
             break
 
     if outcome != "accepted":

@@ -92,9 +92,9 @@ class HRPlayer(BayesianPlayer):
         candidate_ask = last_candidate_action.params.get("salary_ask", 0)
 
         if action_type == "offer":
-            return self._respond_to_opening(candidate_ask, state, pt)
+            return self._respond_to_opening(candidate_ask, state, pt, private_view)
         elif action_type == "counter_offer":
-            return self._respond_to_counter(candidate_ask, state, pt)
+            return self._respond_to_counter(candidate_ask, state, pt, private_view)
         elif action_type == "accept":
             return self._confirm_accept(state, pt)
         elif action_type == "reject":
@@ -152,7 +152,7 @@ class HRPlayer(BayesianPlayer):
         )
 
     def _respond_to_opening(
-        self, candidate_ask: int, state: GameState, pt: HRPrivateType
+        self, candidate_ask: int, state: GameState, pt: HRPrivateType, private_view: dict | None = None
     ) -> AgentAction:
         """Respond to candidate's opening salary demand."""
         budget = pt.true_budget
@@ -169,25 +169,40 @@ class HRPlayer(BayesianPlayer):
                 timestamp=datetime.now().isoformat(),
             )
 
+        # Belief-driven adjustment: if candidate likely strong, be more generous
+        belief_note = ""
+        discount_pct = 0.92
+        if private_view:
+            beliefs = private_view.get("beliefs", {})
+            cand_belief = beliefs.get("candidate", {})
+            cand_dist = cand_belief.get("belief_distribution", {})
+            strong_prob = cand_dist.get("strong_candidate", 0)
+            if strong_prob > 0.6:
+                discount_pct = 0.96
+                belief_note = f" Belief: strong candidate prob={strong_prob:.0%} -> less aggressive counter."
+            elif strong_prob < 0.2:
+                discount_pct = 0.88
+                belief_note = f" Belief: strong candidate prob={strong_prob:.0%} -> more aggressive counter."
+
         # If ask is within budget range, accept directly
         if candidate_ask <= budget * 0.85:
             return AgentAction(
                 player="hr", action_type="offer",
                 params={"salary_offer": candidate_ask, "accepted_directly": True},
-                reasoning=f"Candidate ask {candidate_ask}K well within budget. Accepting.",
+                reasoning=f"Candidate ask {candidate_ask}K well within budget. Accepting.{belief_note}",
                 confidence=0.8, round=state.round,
                 timestamp=datetime.now().isoformat(),
             )
 
         # If ask is within budget, negotiate
         if candidate_ask <= budget:
-            target = int(candidate_ask * 0.92)
+            target = int(candidate_ask * discount_pct)
             target = max(target, int(budget * 0.78))
             target = (target // 5) * 5
             return AgentAction(
                 player="hr", action_type="counter_offer",
                 params={"salary_offer": target, "previous_ask": candidate_ask},
-                reasoning=f"Counter: {target}K to candidate ask of {candidate_ask}K.",
+                reasoning=f"Counter: {target}K to candidate ask of {candidate_ask}K.{belief_note}",
                 confidence=0.65, round=state.round,
                 timestamp=datetime.now().isoformat(),
             )
@@ -199,7 +214,7 @@ class HRPlayer(BayesianPlayer):
             return AgentAction(
                 player="hr", action_type="counter_offer",
                 params={"salary_offer": offer, "final_offer": True},
-                reasoning=f"Ask {candidate_ask}K above budget {budget}K. Best and final: {offer}K.",
+                reasoning=f"Ask {candidate_ask}K above budget {budget}K. Best and final: {offer}K.{belief_note}",
                 confidence=0.5, round=state.round,
                 timestamp=datetime.now().isoformat(),
             )
@@ -208,20 +223,35 @@ class HRPlayer(BayesianPlayer):
         return AgentAction(
             player="hr", action_type="reject",
             params={"reason": "budget_exceeded", "ask": candidate_ask, "budget": budget},
-            reasoning=f"Ask {candidate_ask}K far exceeds budget {budget}K. Rejecting.",
+            reasoning=f"Ask {candidate_ask}K far exceeds budget {budget}K. Rejecting.{belief_note}",
             confidence=0.9, round=state.round,
             timestamp=datetime.now().isoformat(),
         )
 
     def _respond_to_counter(
-        self, candidate_ask: int, state: GameState, pt: HRPrivateType
+        self, candidate_ask: int, state: GameState, pt: HRPrivateType, private_view: dict | None = None
     ) -> AgentAction:
         """Respond to candidate's counter-offer."""
         budget = pt.true_budget
         equity_limit = pt.internal_equity_constraint if pt.internal_equity_constraint > 0 else budget
 
+        # Belief-driven adjustment: if candidate likely strong, increase concession
+        belief_note = ""
+        concession_mult = 1.0
+        if private_view:
+            beliefs = private_view.get("beliefs", {})
+            cand_belief = beliefs.get("candidate", {})
+            cand_dist = cand_belief.get("belief_distribution", {})
+            strong_prob = cand_dist.get("strong_candidate", 0)
+            if strong_prob > 0.6:
+                concession_mult = 1.15
+                belief_note = f" Belief: strong candidate prob={strong_prob:.0%} -> +15% concession."
+            elif strong_prob < 0.2:
+                concession_mult = 0.85
+                belief_note = f" Belief: strong candidate prob={strong_prob:.0%} -> -15% concession."
+
         # Compute concession based on urgency and pool quality
-        max_concession = budget * (0.05 + pt.urgency * 0.15)
+        max_concession = budget * (0.05 + pt.urgency * 0.15) * concession_mult
         current_offer = state.public_offer or int(budget * 0.75)
         new_offer = int(current_offer + max_concession * (1 - pt.candidate_pool_quality))
         new_offer = min(new_offer, int(min(budget, equity_limit) * 0.98))
@@ -235,7 +265,7 @@ class HRPlayer(BayesianPlayer):
             return AgentAction(
                 player="hr", action_type="offer",
                 params={"salary_offer": final, "accepted_candidate_ask": True},
-                reasoning=f"Candidate ask {candidate_ask}K within our range. Accepting at {final}K.",
+                reasoning=f"Candidate ask {candidate_ask}K within our range. Accepting at {final}K.{belief_note}",
                 confidence=0.85, round=state.round,
                 timestamp=datetime.now().isoformat(),
             )
@@ -247,7 +277,7 @@ class HRPlayer(BayesianPlayer):
             return AgentAction(
                 player="hr", action_type="offer",
                 params={"salary_offer": final, "meeting_in_middle": True},
-                reasoning=f"Meeting at {final}K (ask={candidate_ask}K, offer={new_offer}K).",
+                reasoning=f"Meeting at {final}K (ask={candidate_ask}K, offer={new_offer}K).{belief_note}",
                 confidence=0.75, round=state.round,
                 timestamp=datetime.now().isoformat(),
             )
@@ -256,7 +286,7 @@ class HRPlayer(BayesianPlayer):
             return AgentAction(
                 player="hr", action_type="counter_offer",
                 params={"salary_offer": new_offer},
-                reasoning=f"Counter: {new_offer}K. Budget remaining: {budget - new_offer}K.",
+                reasoning=f"Counter: {new_offer}K. Budget remaining: {budget - new_offer}K.{belief_note}",
                 confidence=0.55, round=state.round,
                 timestamp=datetime.now().isoformat(),
             )
@@ -267,7 +297,7 @@ class HRPlayer(BayesianPlayer):
         return AgentAction(
             player="hr", action_type="offer",
             params={"salary_offer": final, "best_and_final": True},
-            reasoning=f"Best and final: {final}K. Urgency: {pt.urgency:.0%}.",
+            reasoning=f"Best and final: {final}K. Urgency: {pt.urgency:.0%}.{belief_note}",
             confidence=0.7, round=state.round,
             timestamp=datetime.now().isoformat(),
         )

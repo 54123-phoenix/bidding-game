@@ -22,8 +22,8 @@ pytest tests/ -v
 pytest tests/test_payoff.py -v
 
 # Run CLI demo
-python run_demo.py --single
-python run_demo.py --batch
+python scripts/run_demo.py --single
+python scripts/run_demo.py --batch
 ```
 
 ## Architecture Rules

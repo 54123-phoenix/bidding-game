@@ -1,0 +1,25 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="480" height="300" viewBox="0 0 480 300" role="img" aria-label="情报 visual asset 28">
+  <defs>
+    <radialGradient id="g28" cx="45%" cy="35%" r="70%">
+      <stop offset="0%" stop-color="#5eead4" stop-opacity="0.34"/>
+      <stop offset="48%" stop-color="#22d3ee" stop-opacity="0.16"/>
+      <stop offset="100%" stop-color="#080a10" stop-opacity="1"/>
+    </radialGradient>
+    <linearGradient id="line28" x1="0" x2="1" y1="0" y2="1">
+      <stop offset="0" stop-color="#5eead4"/>
+      <stop offset="1" stop-color="#22d3ee"/>
+    </linearGradient>
+    <filter id="glow28" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur stdDeviation="5" result="blur"/>
+      <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+  </defs>
+  <rect width="480" height="300" rx="28" fill="#080a10"/>
+  <rect x="1" y="1" width="478" height="298" rx="27" fill="url(#g28)" stroke="#5eead4" stroke-opacity="0.22"/>
+  <g opacity="0.22"><path d="M56 75 C 136 47, 342 103, 422 75" stroke="#5eead4" stroke-opacity="0.22" stroke-width="1.2" fill="none"/><path d="M69 109 C 149 81, 323 137, 403 109" stroke="#5eead4" stroke-opacity="0.30" stroke-width="1.2" fill="none"/><path d="M82 143 C 162 115, 304 171, 384 143" stroke="#5eead4" stroke-opacity="0.38" stroke-width="1.2" fill="none"/><path d="M95 177 C 175 149, 285 205, 365 177" stroke="#5eead4" stroke-opacity="0.22" stroke-width="1.2" fill="none"/><path d="M48 211 C 128 183, 346 239, 426 211" stroke="#5eead4" stroke-opacity="0.30" stroke-width="1.2" fill="none"/><path d="M61 245 C 141 217, 327 273, 407 245" stroke="#5eead4" stroke-opacity="0.38" stroke-width="1.2" fill="none"/></g>
+  <ellipse cx="128" cy="114" rx="100" ry="88" fill="none" stroke="url(#line28)" stroke-width="1.8" filter="url(#glow28)"/>
+  <ellipse cx="128" cy="114" rx="50" ry="44" fill="none" stroke="#22d3ee" stroke-opacity="0.65" stroke-width="1.2" transform="rotate(8 128 114)"/>
+  <g><circle cx="374" cy="160" r="3" fill="#5eead4" fill-opacity="0.75"/><circle cx="102" cy="208" r="4" fill="#22d3ee" fill-opacity="0.75"/><circle cx="210" cy="256" r="5" fill="#5eead4" fill-opacity="0.75"/><circle cx="318" cy="84" r="6" fill="#22d3ee" fill-opacity="0.75"/><circle cx="426" cy="132" r="3" fill="#5eead4" fill-opacity="0.75"/><circle cx="154" cy="180" r="4" fill="#22d3ee" fill-opacity="0.75"/><circle cx="262" cy="228" r="5" fill="#5eead4" fill-opacity="0.75"/><circle cx="370" cy="56" r="6" fill="#22d3ee" fill-opacity="0.75"/><circle cx="98" cy="104" r="3" fill="#5eead4" fill-opacity="0.75"/></g>
+  <text x="34" y="252" fill="#e8e6e0" font-family="ui-sans-serif, system-ui" font-size="22" font-weight="800">情报</text>
+  <text x="34" y="274" fill="#5eead4" font-family="ui-monospace, monospace" font-size="11" letter-spacing="3">INTELLIGENCE / 028</text>
+</svg>

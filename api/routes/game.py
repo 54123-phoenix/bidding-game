@@ -10,9 +10,17 @@ from __future__ import annotations
 import uuid
 from datetime import datetime
 
-from fastapi import APIRouter, Form, UploadFile
+from fastapi import APIRouter, Form, HTTPException
 from pydantic import BaseModel, Field
 
+from api.game_helpers import (
+    build_options as _build_options,
+    build_prompt as _build_prompt,
+    outcome_message as _outcome_message,
+    parse_candidate_message,
+    serialize_pydantic as _serialize_pydantic,
+    serialize_state as _serialize_state,
+)
 from game.engine import BiddingGameEngine
 from game.equilibrium import EquilibriumSolver
 from input.resume_parser import parse_resume
@@ -35,14 +43,20 @@ def _load_session(session_id: str) -> dict | None:
     return _store.get(session_id)
 
 
-def _serialize_pydantic(obj) -> dict:
-    """Safely serialize a Pydantic model or dataclass."""
-    if hasattr(obj, "model_dump"):
-        return obj.model_dump()
-    if hasattr(obj, "__dataclass_fields__"):
-        from dataclasses import asdict
-        return asdict(obj)
-    return dict(obj) if obj else {}
+def _persist_runtime_state(session: dict, state, engine: BiddingGameEngine) -> None:
+    """Keep serialized session fields in sync with the live game state."""
+    session["state"] = _serialize_pydantic(state)
+    session["actions"] = [a.model_dump() for a in state.action_history]
+    if getattr(engine, "_patience", None):
+        session["patience"] = _serialize_pydantic(engine._patience)
+
+
+def _append_round_insight(session: dict, insight: dict) -> None:
+    insights = session.get("round_insights")
+    if not isinstance(insights, list):
+        insights = []
+    insights.append(insight)
+    session["round_insights"] = insights[-20:]
 
 
 def _deserialize_game_state(data: dict) -> "GameState":
@@ -57,10 +71,6 @@ def _deserialize_resume(data: dict) -> StructuredResume:
 
 def _deserialize_job(data: dict) -> StructuredJob:
     return StructuredJob.model_validate(data)
-
-
-def _deserialize_actions(data: list) -> list[AgentAction]:
-    return [AgentAction.model_validate(a) for a in data]
 
 
 def _deserialize_persona(data: dict):
@@ -226,6 +236,9 @@ async def init_game(request: GameInitRequest):
             "round_actions": [a.model_dump() for a in actions],
             "prompt": _build_prompt(state, request.strategy),
             "options": _build_options(state, request.strategy),
+            "info_cards": [c.model_dump() for c in state.candidate_hand],
+            "trust_state": state.trust_state.model_dump(),
+            "info_narrative": "选择何时披露、夸大或隐藏信息，会影响 HR 对你的信任。",
             "screening": {
                 "score": screening.score,
                 "tier": screening.tier,
@@ -242,43 +255,24 @@ async def game_act(request: GameActRequest):
     """User submits their move as the candidate. System runs HR/Market/Interviewer responses."""
     session = _load_session(request.session_id)
     if not session:
-        return {"status": "error", "message": "会话已过期，请重新开始"}
+        raise HTTPException(status_code=400, detail="会话已过期，请重新开始")
 
     try:
         state = _deserialize_game_state(session["state"])
         round_num = session["round"]
         engine = _build_engine_from_session(session)
 
-        # ── Free-text message parsing ─────────────────────────────────────
-        action_type = request.action_type
-        salary_amount = request.salary_amount
-        reasoning = "用户决策"
-
-        if request.message and request.message.strip():
-            msg = request.message.strip().lower()
-            reasoning = request.message.strip()
-
-            # Detect accept/reject intent
-            if any(k in msg for k in ("接受", "同意", "好的", "可以", "没问题", "接受offer", "join", "accept")):
-                action_type = "accept"
-            elif any(k in msg for k in ("拒绝", "算了", "不考虑", "抱歉", "reject", "pass", "decline")):
-                action_type = "reject"
-            else:
-                action_type = "counter_offer"
-
-            # Extract salary number (e.g., "55k", "60千", "期望65")
-            import re
-            m = re.search(r'(\d{2,3})\s*[k千K/]', request.message)
-            if not m:
-                m = re.search(r'(?:期望|底线|至少|不低于|要|给|到)\s*(\d{2,3})', request.message)
-            if m:
-                salary_amount = int(m.group(1))
+        action_type, salary_amount, reasoning = parse_candidate_message(
+            request.action_type,
+            request.salary_amount,
+            request.message,
+        )
 
         # Validate action
         if action_type == "accept" and not state.public_offer:
-            return {"status": "error", "message": "当前没有HR报价，无法接受。请先提出你的薪资期望。"}
+            raise HTTPException(status_code=422, detail="当前没有HR报价，无法接受。请先提出你的薪资期望。")
         if action_type == "counter_offer" and not salary_amount:
-            return {"status": "error", "message": "还价需要指定薪资数额。"}
+            raise HTTPException(status_code=422, detail="还价需要指定薪资数额。")
 
         # Build user's action as candidate
         user_action = AgentAction(
@@ -318,6 +312,8 @@ async def game_act(request: GameActRequest):
 
         # Snapshot
         state.round_snapshots.append(engine._snapshot(state))
+        round_insight = _build_round_insight(state, user_action, hr_action, engine)
+        _append_round_insight(session, round_insight)
 
         # Check termination
         outcome = None
@@ -328,7 +324,7 @@ async def game_act(request: GameActRequest):
 
         session["outcome"] = outcome
         session["round"] = round_num + 1
-        session["state"] = _serialize_pydantic(state)
+        _persist_runtime_state(session, state, engine)
 
         if outcome:
             # Game over — build final result
@@ -338,6 +334,7 @@ async def game_act(request: GameActRequest):
             # Store in session for debrief chat
             session["final_result"] = result.model_dump()
             session["equilibrium"] = eq.model_dump()
+            _persist_runtime_state(session, state, engine)
             _save_session(request.session_id, session)
             return {
                 "status": "ok",
@@ -350,6 +347,9 @@ async def game_act(request: GameActRequest):
                 "equilibrium": eq.model_dump(),
                 "message": _outcome_message(outcome, state),
                 "termination_reason": getattr(state, "termination_reason", ""),
+                "info_cards": [c.model_dump() for c in state.candidate_hand],
+                "trust_state": state.trust_state.model_dump(),
+                "round_insight": round_insight,
             }
 
         # Continue to next round — market signal + candidate turn
@@ -358,7 +358,7 @@ async def game_act(request: GameActRequest):
 
         from game.players.market import MarketPlayer
         market = MarketPlayer(state.market_type)
-        market_action = await market.act(state, market.get_private_view(state, "market"))
+        market_action = market.act_sync(state, market.get_private_view(state, "market"))
         state.action_history.append(market_action)
         engine._apply_market_signal(state, market_action)
 
@@ -369,7 +369,7 @@ async def game_act(request: GameActRequest):
         last_patience_events = getattr(state, "patience_events", [])[-3:] if hasattr(state, "patience_events") else []
 
         # Persist updated session
-        session["state"] = _serialize_pydantic(state)
+        _persist_runtime_state(session, state, engine)
         _save_session(request.session_id, session)
 
         return {
@@ -384,9 +384,12 @@ async def game_act(request: GameActRequest):
             "patience_events": last_patience_events,
             "prompt": _build_prompt(state, session.get("strategy", "balanced")),
             "options": _build_options(state, session.get("strategy", "balanced")),
+            "info_cards": [c.model_dump() for c in state.candidate_hand],
+            "trust_state": state.trust_state.model_dump(),
+            "round_insight": round_insight,
         }
     except Exception as e:
-        return {"status": "error", "message": str(e)}
+        raise HTTPException(status_code=500, detail=str(e))
 
 
 @router.post("/resume/parse")
@@ -513,15 +516,15 @@ async def get_game_state(session_id: str):
             "strategy": strategy,
             "market_condition": session.get("market_condition", "normal"),
             "model": session.get("model"),
+            "info_cards": [c.model_dump() for c in state.candidate_hand] if state else [],
+            "trust_state": state.trust_state.model_dump() if state else None,
+            "round_actions": session.get("actions", [])[-10:] if session.get("actions") else [],
         }
 
         # If game is active, include current prompt and options
         if state and not outcome:
             response["prompt"] = _build_prompt(state, strategy)
             response["options"] = _build_options(state, strategy)
-            # Include latest actions for chat history
-            actions = session.get("actions", [])
-            response["round_actions"] = actions[-10:] if actions else []
 
         # If game finished, include final result
         if outcome:
@@ -552,30 +555,11 @@ async def game_act_stream(request: GameActRequest):
     state = _deserialize_game_state(session["state"])
     round_num = session["round"]
 
-    # ── Free-text message parsing ─────────────────────────────────────
-    action_type = request.action_type
-    salary_amount = request.salary_amount
-    reasoning = "用户决策"
-
-    if request.message and request.message.strip():
-        msg = request.message.strip().lower()
-        reasoning = request.message.strip()
-
-        # Detect accept/reject intent
-        if any(k in msg for k in ("接受", "同意", "好的", "可以", "没问题", "接受offer", "join", "accept")):
-            action_type = "accept"
-        elif any(k in msg for k in ("拒绝", "算了", "不考虑", "抱歉", "reject", "pass", "decline")):
-            action_type = "reject"
-        else:
-            action_type = "counter_offer"
-
-        # Extract salary number
-        import re
-        m = re.search(r'(\d{2,3})\s*[k千K/]', request.message)
-        if not m:
-            m = re.search(r'(?:期望|底线|至少|不低于|要|给|到)\s*(\d{2,3})', request.message)
-        if m:
-            salary_amount = int(m.group(1))
+    action_type, salary_amount, reasoning = parse_candidate_message(
+        request.action_type,
+        request.salary_amount,
+        request.message,
+    )
 
     # Validate action
     if action_type == "accept" and not state.public_offer:
@@ -609,8 +593,10 @@ async def game_act_stream(request: GameActRequest):
                 hr.set_persona(persona)
             private_view = hr.get_private_view(state, "hr")
 
-            # Stream HR deliberation
+            # Stream HR deliberation and capture the final result
+            # (avoids a redundant second LLM call)
             from game.deliberation import deliberate_stream
+            deliberation_data = None
             async for event in deliberate_stream(
                 agent_role="hr",
                 state=state,
@@ -619,37 +605,30 @@ async def game_act_stream(request: GameActRequest):
                 model=model,
             ):
                 yield f"data: {_json.dumps(event, ensure_ascii=False)}\n\n"
+                if event.get("type") == "done":
+                    deliberation_data = event.get("result")
 
-            # After deliberation completes, re-run deliberation non-streaming to get action
-            # (deliberate_stream yields events but doesn't return the action)
-            from game.deliberation import deliberate
-            result = await deliberate(
-                agent_role="hr",
-                state=state,
-                private_view=private_view,
-                persona=persona,
-                model=model,
-            )
-
-            if result.evaluated_options:
-                selected = result.evaluated_options[result.selected_index]
-                reasoning = selected.opponent_projections[0].reasoning if selected.opponent_projections else ""
-                if not reasoning:
-                    reasoning = f"选择：{selected.option.label}（EU={selected.expected_utility:.2f}）"
-
-                hr_action = AgentAction(
-                    player="hr",
-                    action_type=selected.option.action_type,
-                    params=selected.option.params,
-                    reasoning=reasoning,
-                    confidence=result.confidence,
-                    round=round_num,
-                    timestamp=datetime.now().isoformat(),
-                )
-                from game.deliberation import deliberation_to_dict
-                hr_action.params["_deliberation"] = deliberation_to_dict(result)
+            # Build hr_action directly from streamed deliberation result
+            if deliberation_data:
+                options = deliberation_data.get("options", [])
+                idx = deliberation_data.get("selected_index", 0)
+                if 0 <= idx < len(options):
+                    opt = options[idx]
+                    salary = opt.get("salary")
+                    proj = (opt.get("opponent_projections") or [{}])[0]
+                    hr_action = AgentAction(
+                        player="hr",
+                        action_type=opt.get("action", "counter_offer"),
+                        params={"salary_offer": salary} if salary else opt,
+                        reasoning=proj.get("reasoning", "") or f"选择：{opt.get('label', '')}（EU={opt.get('expected_utility', 0.5):.2f}）",
+                        confidence=deliberation_data.get("confidence", 0.6),
+                        round=round_num,
+                        timestamp=datetime.now().isoformat(),
+                    )
+                    hr_action.params["_deliberation"] = deliberation_data
+                else:
+                    hr_action = hr.act_sync(state, private_view)
             else:
-                # Fallback to rule-based
                 hr_action = hr.act_sync(state, private_view)
 
             state.action_history.append(hr_action)
@@ -664,11 +643,13 @@ async def game_act_stream(request: GameActRequest):
             # Update patience
             engine._update_patience(
                 state, user_action, hr_action,
-                session["resume"], session.get("market_condition", "normal")
+                _deserialize_resume(session["resume"]), session.get("market_condition", "normal")
             )
 
             # Snapshot
             state.round_snapshots.append(engine._snapshot(state))
+            round_insight = _build_round_insight(state, user_action, hr_action, engine)
+            _append_round_insight(session, round_insight)
 
             # Check termination
             outcome = None
@@ -679,7 +660,7 @@ async def game_act_stream(request: GameActRequest):
 
             session["outcome"] = outcome
             session["round"] = round_num + 1
-            session["state"] = _serialize_pydantic(state)
+            _persist_runtime_state(session, state, engine)
 
             if outcome:
                 result_obj = engine._build_result(state, state.game_id)
@@ -687,8 +668,9 @@ async def game_act_stream(request: GameActRequest):
                 eq = solver.solve(state)
                 session["final_result"] = result_obj.model_dump()
                 session["equilibrium"] = eq.model_dump()
+                _persist_runtime_state(session, state, engine)
                 _save_session(request.session_id, session)
-                yield f"data: {_json.dumps({'type': 'game_over', 'outcome': outcome, 'game_state': _serialize_state(state), 'final_result': result_obj.model_dump(), 'equilibrium': eq.model_dump(), 'message': _outcome_message(outcome, state), 'termination_reason': getattr(state, 'termination_reason', '')}, ensure_ascii=False)}\n\n"
+                yield f"data: {_json.dumps({'type': 'game_over', 'outcome': outcome, 'game_state': _serialize_state(state), 'final_result': result_obj.model_dump(), 'equilibrium': eq.model_dump(), 'message': _outcome_message(outcome, state), 'termination_reason': getattr(state, 'termination_reason', ''), 'info_cards': [c.model_dump() for c in state.candidate_hand], 'trust_state': state.trust_state.model_dump(), 'round_insight': round_insight}, ensure_ascii=False)}\n\n"
             else:
                 # Continue to next round
                 next_round = state.round + 1
@@ -696,7 +678,7 @@ async def game_act_stream(request: GameActRequest):
 
                 from game.players.market import MarketPlayer
                 market = MarketPlayer(state.market_type)
-                market_action = await market.act(state, market.get_private_view(state, "market"))
+                market_action = market.act_sync(state, market.get_private_view(state, "market"))
                 state.action_history.append(market_action)
                 engine._apply_market_signal(state, market_action)
 
@@ -705,10 +687,10 @@ async def game_act_stream(request: GameActRequest):
                 patience = _deserialize_patience(patience_data) if patience_data else None
                 last_patience_events = getattr(state, "patience_events", [])[-3:] if hasattr(state, "patience_events") else []
 
-                session["state"] = _serialize_pydantic(state)
+                _persist_runtime_state(session, state, engine)
                 _save_session(request.session_id, session)
 
-                yield f"data: {_json.dumps({'type': 'round_complete', 'round': next_round, 'phase': 'candidate_turn', 'game_state': _serialize_state(state), 'last_hr_action': hr_action.model_dump(), 'hr_deliberation': hr_deliberation, 'hr_patience': patience.hr_patience if patience else 1.0, 'patience_events': last_patience_events, 'prompt': _build_prompt(state, session.get('strategy', 'balanced')), 'options': _build_options(state, session.get('strategy', 'balanced'))}, ensure_ascii=False)}\n\n"
+                yield f"data: {_json.dumps({'type': 'round_complete', 'round': next_round, 'phase': 'candidate_turn', 'game_state': _serialize_state(state), 'last_hr_action': hr_action.model_dump(), 'hr_deliberation': hr_deliberation, 'hr_patience': engine._patience.hr_patience if getattr(engine, '_patience', None) else (patience.hr_patience if patience else 1.0), 'patience_events': last_patience_events, 'prompt': _build_prompt(state, session.get('strategy', 'balanced')), 'options': _build_options(state, session.get('strategy', 'balanced')), 'info_cards': [c.model_dump() for c in state.candidate_hand], 'trust_state': state.trust_state.model_dump(), 'round_insight': round_insight}, ensure_ascii=False)}\n\n"
 
         except Exception as exc:
             yield f"data: {_json.dumps({'type': 'error', 'message': str(exc)}, ensure_ascii=False)}\n\n"
@@ -728,10 +710,12 @@ async def game_act_stream(request: GameActRequest):
 
 async def _run_round_0(engine, resume, job, market, strategy, model: str | None = None, screening=None):
     """Run round 0: market signal + interviewer eval. Returns state ready for candidate turn."""
-    candidate_type = engine._infer_candidate_type(resume, strategy)
-    hr_type = engine._infer_hr_type(job, market)
-    interviewer_type = engine._infer_interviewer_type()
-    market_type = engine._infer_market_type(market, job)
+    from game.type_inferrer import TypeInferrer
+    type_inferrer = TypeInferrer()
+    candidate_type = type_inferrer.infer_candidate_type(resume, strategy)
+    hr_type = type_inferrer.infer_hr_type(job, market)
+    interviewer_type = type_inferrer.infer_interviewer_type()
+    market_type = type_inferrer.infer_market_type(market, job)
 
     from game.persona import generate_random_persona
     from game.patience import PatienceState
@@ -770,6 +754,10 @@ async def _run_round_0(engine, resume, job, market, strategy, model: str | None 
             "hr": BeliefState(about_player="hr"),
         },
     )
+
+    from game.infowar import InfoWarEngine
+    engine._info_engine = InfoWarEngine()
+    engine._info_engine.deal_hand(state)
 
     from game.players.base import PlayerConfig
     from game.players.market import MarketPlayer
@@ -831,7 +819,7 @@ async def _parse_jd_text(text: str) -> StructuredJob:
                 },
                 {"role": "user", "content": text[:4000]},
             ]
-            raw = await call_llm_chat(messages, temperature=0.1, max_retries=2, model="qwen-turbo")
+            raw = await call_llm_chat(messages, temperature=0.1, max_retries=2, task_type="parse")
             import json as _json, re as _re
             raw = raw.strip()
             m = _re.search(r"\{[\s\S]*\}", raw)
@@ -972,134 +960,86 @@ def _rule_parse_jd(text: str) -> dict:
     return data
 
 
-def _serialize_state(state) -> dict:
-    """Serialize current game state for the frontend."""
-    return {
-        "round": state.round,
-        "max_rounds": state.max_rounds,
-        "public_offer": state.public_offer,
-        "public_status": state.public_status,
-        "competition_intensity": getattr(state, "competition_intensity", 0.5),
-        "market_adjustment": getattr(state, "market_adjustment", 1.0),
-        "scores": getattr(state, "scores", {}),
-        "interviewer_recommendation": _get_interviewer_rec(state),
-    }
-
-
-def _get_interviewer_rec(state) -> str:
-    """Extract interviewer recommendation from action history."""
-    for a in reversed(state.action_history):
-        if a.player == "interviewer":
-            rec = a.params.get("recommendation", "")
-            mapping = {
-                "strong_hire": "强烈推荐",
-                "hire": "推荐录用",
-                "weak_hire": "勉强推荐",
-                "no_hire": "不推荐",
-            }
-            return mapping.get(rec, rec or "待评估")
-    return "待评估"
-
-
-def _build_prompt(state, strategy: str = "balanced") -> str:
-    """Build the prompt text for the user's decision."""
-    offer = state.public_offer or 0
-    market_label = (
-        "候选人市场（对你有利）" if getattr(state, "market_adjustment", 1.0) > 1.05
-        else "雇主市场（对企业有利）" if getattr(state, "market_adjustment", 1.0) < 0.95
-        else "供需平衡"
+def _build_round_insight(state, candidate_action, hr_action, engine: BiddingGameEngine | None = None) -> dict:
+    ask = candidate_action.params.get("salary_ask") or candidate_action.params.get("accepted_salary")
+    offer = (
+        hr_action.params.get("salary_offer")
+        or hr_action.params.get("final_salary")
+        or hr_action.params.get("accepted_salary")
     )
+    budget = getattr(state.hr_type, "true_budget", 0) or 0
+    reservation = getattr(state.candidate_type, "reservation_wage", 0) or 0
+    public_offer = getattr(state, "public_offer", None)
+    trust = getattr(state, "trust_state", None)
+    trust_value = getattr(trust, "hr_trust_in_candidate", 0.5) if trust else 0.5
+    patience_state = getattr(engine, "_patience", None) if engine else None
+    hr_patience = getattr(patience_state, "hr_patience", getattr(state, "hr_patience", 1.0))
+    patience_events = getattr(state, "patience_events", []) or []
+    patience_delta = round(sum(e.get("delta", 0) for e in patience_events if e.get("source") == "hr"), 3)
 
-    if offer > 0:
-        return (
-            f"第 {state.round + 1} 轮谈判。当前桌上报价 {offer}K/年。"
-            f"市场状态：{market_label}。"
-            f"你的薪资底线：{state.candidate_type.reservation_wage}K/年。"
-        )
+    if candidate_action.action_type == "accept":
+        hr_interpretation = "你释放了成交信号，HR 会把重点转向确认薪资、职级与入职条件。"
+        risk_level = "low"
+    elif candidate_action.action_type == "reject":
+        hr_interpretation = "你选择退出谈判，HR 会判断当前条件已经无法覆盖你的机会成本。"
+        risk_level = "high"
+    elif ask and budget and ask > budget:
+        hr_interpretation = f"你提出 {ask}K，已经超过 HR 预算上沿 {budget}K。HR 会认为你很强势，但成交风险明显上升。"
+        risk_level = "high"
+    elif ask and budget and ask >= budget * 0.9:
+        hr_interpretation = f"你提出 {ask}K，接近 HR 预算上沿。HR 会认真评估你的稀缺性和替代成本。"
+        risk_level = "medium"
+    elif ask and reservation and ask <= reservation:
+        hr_interpretation = f"你提出 {ask}K，接近或低于你的底线。HR 会觉得成交容易，但你可能让出了议价空间。"
+        risk_level = "medium"
+    elif ask:
+        hr_interpretation = f"你提出 {ask}K，仍在可谈区间内。HR 会把它视为试探性锚点，而非最后通牒。"
+        risk_level = "low"
     else:
-        # Round 0: HR is waiting for candidate's opening demand
-        job = state.job
-        salary_hint = ""
-        if job.salary_range and len(job.salary_range) == 2:
-            salary_hint = f"该岗位薪资范围 {job.salary_range[0]}K-{job.salary_range[1]}K/年。"
-        strategy_hint = {
-            "aggressive": "你采用激进策略，开局可以锚定高位。",
-            "balanced": "你采用稳健策略，开局要价适中偏高。",
-            "conservative": "你采用保守策略，开局要价务实。",
-        }.get(strategy, "")
-        return (
-            f"HR 正在等待你的薪资期望。{salary_hint}"
-            f"市场状态：{market_label}。{strategy_hint}"
-            f"（你的薪资底线：{state.candidate_type.reservation_wage}K/年，但开局要价应高于底线）"
-        )
+        hr_interpretation = "你没有明确新的薪资锚点，HR 会继续依据现有报价和简历信号判断你的筹码。"
+        risk_level = "medium"
 
-
-def _build_options(state, strategy: str = "balanced") -> list[dict]:
-    """Build valid actions based on current negotiation state.
-
-    Round 0 (no HR offer yet): opening demand anchored to job's salary band,
-    positioned by candidate strategy — NOT by reservation wage alone.
-    Round 1+: counter above current HR offer.
-    """
-    offer = state.public_offer or 0
-    reserve = state.candidate_type.reservation_wage
-    job = state.job
-
-    # Job salary band for anchoring opening demands
-    if job.salary_range and len(job.salary_range) == 2:
-        job_low, job_high = job.salary_range
+    if hr_action.action_type == "reject":
+        next_advice = "本轮已经触发拒绝。下一次应先强化能力证据或降低开价幅度，再进入薪资拉扯。"
+        turning_point = True
+        risk_level = "high"
+    elif hr_action.action_type == "accept":
+        next_advice = "HR 已接受条件。接下来应确认总包结构、试用期、入职时间和绩效口径。"
+        turning_point = True
+        risk_level = "low"
+    elif hr_action.action_type in ("counter_offer", "offer") and offer:
+        if ask and offer and abs(ask - offer) <= 20:
+            next_advice = "双方报价已经接近。建议用福利、职级或入职时间换取最后小幅上调。"
+            turning_point = True
+        elif ask and offer and ask > offer:
+            next_advice = "建议不要继续大幅加价，优先补充稀缺技能、竞品机会或项目影响力来支撑你的锚点。"
+            turning_point = False
+        else:
+            next_advice = "可以继续观察 HR 让步空间，同时用岗位匹配度和业务影响力争取更高报价。"
+            turning_point = False
     else:
-        job_low, job_high = 300, 600
+        next_advice = "建议继续观察 HR 反应，并补充能证明能力或市场稀缺度的信息。"
+        turning_point = False
 
-    options = []
+    offer_delta = None
+    if ask and offer:
+        offer_delta = offer - ask
+    elif public_offer and ask:
+        offer_delta = public_offer - ask
 
-    # Only show accept if there's a real offer that meets/exceeds reservation
-    if offer > 0 and offer >= reserve * 0.85:
-        options.append({"action": "accept", "label": f"接受报价 {offer}K/年", "color": "emerald"})
-
-    if offer > 0:
-        # ── Later rounds: counter ABOVE current HR offer ──
-        counter_targets = [
-            max(offer + 5, int(offer * 1.08)),
-            max(offer + 15, int(offer * 1.15)),
-        ]
-        counter_targets = list(dict.fromkeys(counter_targets))
-        for target in counter_targets:
-            options.append({
-                "action": "counter_offer",
-                "salary": (target // 5) * 5,
-                "label": f"要价 {(target // 5) * 5}K/年",
-                "color": "cyan",
-            })
-        options.append({"action": "reject", "label": "拒绝并退出谈判", "color": "red"})
-    else:
-        # ── Round 0: opening demand — anchor to JOB salary band ──
-        # Strategy determines where in the band to position the opening ask
-        anchors = {
-            "aggressive":    (0.78, 0.95),   # Aim near top of band
-            "balanced":      (0.62, 0.82),   # Upper-middle of band
-            "conservative":  (0.48, 0.68),   # Middle of band
-        }
-        low_pct, high_pct = anchors.get(strategy, anchors["balanced"])
-
-        targets = [
-            int(job_high * low_pct),
-            int(job_high * high_pct),
-        ]
-        # Never go below reserve (irrational to ask for less than your bottom line)
-        targets = [max(t, reserve + 10) for t in targets]
-        targets = list(dict.fromkeys(targets))
-
-        for target in targets:
-            options.append({
-                "action": "counter_offer",
-                "salary": (target // 5) * 5,
-                "label": f"我要 {(target // 5) * 5}K/年",
-                "color": "cyan",
-            })
-
-    return options
-
+    return {
+        "round": candidate_action.round,
+        "hr_interpretation": hr_interpretation,
+        "situation_delta": {
+            "trust_level": round(trust_value, 3),
+            "hr_patience": round(hr_patience, 3),
+            "patience_delta": patience_delta,
+            "offer_delta": offer_delta,
+        },
+        "next_advice": next_advice,
+        "risk_level": risk_level,
+        "turning_point": turning_point,
+    }
 
 @router.post("/game/info_act")
 async def info_act(request: InfoActRequest):
@@ -1140,11 +1080,3 @@ async def info_act(request: InfoActRequest):
         }
     except Exception as e:
         return {"status": "error", "message": str(e)}
-
-
-def _outcome_message(outcome: str, state) -> str:
-    if outcome == "accepted":
-        return f"谈判成功！最终薪资 {state.public_offer}K/年。恭喜！"
-    elif outcome == "rejected":
-        return f"谈判破裂。候选人与HR未能达成一致。"
-    return "谈判超时。"

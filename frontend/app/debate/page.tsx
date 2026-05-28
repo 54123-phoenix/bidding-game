@@ -1,5 +1,7 @@
 "use client";
 
+/* eslint-disable @typescript-eslint/no-explicit-any */
+
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import NumberTicker from "@/components/number-ticker";
@@ -105,7 +107,7 @@ function ClaimCard({ claim, defaultExpanded }: { claim: any; defaultExpanded?: b
   const [expanded, setExpanded] = useState(defaultExpanded || false);
 
   return (
-    <div className={`border rounded-xl p-4 ${SEVERITY_COLORS[claim.severity] || ""}`}>
+    <div className={`surface-base rounded-2xl p-4 ${SEVERITY_COLORS[claim.severity] || ""}`}>
       <div className="flex items-start justify-between">
         <div>
           <div className="flex items-center gap-2 mb-1">
@@ -141,7 +143,7 @@ function ClaimCard({ claim, defaultExpanded }: { claim: any; defaultExpanded?: b
 
 function AlternativeCard({ alt }: { alt: any }) {
   return (
-    <div className={`border rounded-lg p-3 ${alt.significant ? "border-cyan-700/50 bg-cyan-950/10" : "border-slate-700/50 bg-slate-800/30"}`}>
+    <div className={`surface-base rounded-2xl p-3 ${alt.significant ? "border-cyan-700/50 bg-cyan-950/10" : ""}`}>
       <div className="flex items-center justify-between mb-2">
         <span className="text-xs font-medium text-white">{alt.description}</span>
         {alt.significant && (
@@ -195,33 +197,35 @@ export default function DebatePage() {
   const eq = result?.equilibrium;
 
   return (
-    <div className="max-w-6xl mx-auto px-4 py-8">
+    <div className="product-shell min-h-[calc(100vh-56px)]">
+    <div className="max-w-6xl mx-auto px-4 py-10">
       {/* Header */}
       <div className="flex items-center justify-between mb-6">
         <div>
-          <h1 className="text-3xl font-bold">策略辩论</h1>
-          <p className="text-slate-500 text-sm mt-1">AI 出示证据 → 你质询 → AI 辩护 → 达成共识</p>
+          <div className="text-xs font-semibold text-[var(--accent-cyan)]">评审解释页</div>
+          <h1 className="mt-2 text-3xl font-black text-[var(--text-primary)]">策略辩论</h1>
+          <p className="text-slate-500 text-sm mt-2">AI 出示证据 → 你质询 → AI 辩护 → 达成共识</p>
         </div>
-        <div className="text-[10px] text-slate-600 bg-slate-900 border border-slate-800 rounded-lg px-2 py-1">
+        <div className="surface-base rounded-full px-3 py-1 text-[10px] text-slate-500">
           {proposal ? `确定性 ${proposal.deterministic_pct}%` : "待运行"}
         </div>
       </div>
 
       {/* Controls */}
-      <div className="bg-slate-900 border border-slate-800 rounded-xl p-4 mb-6">
+      <div className="surface-raised rounded-3xl p-4 mb-6">
         <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
           <select value={selected} onChange={(e) => setSelected(Number(e.target.value))}
-            className="bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm w-full">
+            className="surface-base rounded-xl px-3 py-2 text-sm w-full">
             {DEMOS.map((d, i) => (<option key={i} value={i}>{d.label}</option>))}
           </select>
           <select value={strategy} onChange={(e) => setStrategy(e.target.value)}
-            className="bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm">
+            className="surface-base rounded-xl px-3 py-2 text-sm">
             <option value="balanced">策略：稳健型</option>
             <option value="aggressive">策略：激进型</option>
             <option value="conservative">策略：保守型</option>
           </select>
           <select value={market} onChange={(e) => setMarket(e.target.value)}
-            className="bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm">
+            className="surface-base rounded-xl px-3 py-2 text-sm">
             <option value="normal">市场：正常</option>
             <option value="hot">市场：热门</option>
             <option value="cool">市场：冷淡</option>
@@ -229,7 +233,7 @@ export default function DebatePage() {
           <motion.button
             onClick={run} disabled={loading}
             whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }}
-            className="px-6 py-2 bg-cyan-600 hover:bg-cyan-500 disabled:opacity-50 rounded-lg font-medium transition-colors text-sm shadow-lg shadow-cyan-600/20">
+            className="primary-action rounded-xl px-6 py-2 text-sm font-medium transition disabled:opacity-50">
             {loading ? (
               <span className="flex items-center gap-2">
                 <span className="flex gap-1">
@@ -245,13 +249,13 @@ export default function DebatePage() {
         </div>
       </div>
 
-      {error && <div className="bg-red-900/30 border border-red-800 rounded-lg p-4 mb-6 text-red-300 text-sm">{error}</div>}
+      {error && <div className="surface-base mb-6 rounded-2xl p-4 text-sm text-red-300">{error}</div>}
 
       {result && proposal && (
         <div className="space-y-6">
           {/* Top bar: Candidate → Job + Key metrics */}
           <motion.div
-            className="bg-slate-900 border border-slate-800 rounded-xl p-4"
+            className="surface-raised rounded-3xl p-4"
             initial={{ opacity: 0, y: -10 }}
             animate={{ opacity: 1, y: 0 }}
           >
@@ -270,29 +274,29 @@ export default function DebatePage() {
               </div>
             </div>
             <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
-              <div className="bg-slate-800/50 rounded-lg p-2 text-center">
+                <div className="surface-base rounded-2xl p-2 text-center">
                 <div className="text-[10px] text-slate-500">成功率</div>
                 <div className="text-lg font-bold text-cyan-400">
                   <NumberTicker target={Math.round(sim.success_probability * 100)} suffix="%" duration={1.2} autoStart />
                 </div>
               </div>
-              <div className="bg-slate-800/50 rounded-lg p-2 text-center">
+                <div className="surface-base rounded-2xl p-2 text-center">
                 <div className="text-[10px] text-slate-500">结果</div>
                 <div className={`text-lg font-bold ${sim.outcome === "accepted" ? "text-emerald-400" : "text-red-400"}`}>
                   {sim.outcome === "accepted" ? "已录取" : sim.outcome === "rejected" ? "已拒绝" : "超时"}
                 </div>
               </div>
-              <div className="bg-slate-800/50 rounded-lg p-2 text-center">
+                <div className="surface-base rounded-2xl p-2 text-center">
                 <div className="text-[10px] text-slate-500">预期薪资</div>
                 <div className="text-lg font-bold text-white">
                   <NumberTicker target={sim.final_salary} suffix="K" duration={1} autoStart />
                 </div>
               </div>
-              <div className="bg-slate-800/50 rounded-lg p-2 text-center">
+                <div className="surface-base rounded-2xl p-2 text-center">
                 <div className="text-[10px] text-slate-500">均衡类型</div>
                 <div className="text-sm font-bold text-purple-400">{eq.equilibrium_type === "pure_bne" ? "纯策略BNE" : eq.equilibrium_type}</div>
               </div>
-              <div className="bg-slate-800/50 rounded-lg p-2 text-center">
+                <div className="surface-base rounded-2xl p-2 text-center">
                 <div className="text-[10px] text-slate-500">可靠性</div>
                 <div className="text-lg font-bold text-emerald-400">
                   <NumberTicker target={proposal.deterministic_pct} suffix="%" duration={1.5} autoStart />
@@ -303,7 +307,7 @@ export default function DebatePage() {
           </motion.div>
 
           {/* AI Summary */}
-          <div className="bg-gradient-to-r from-cyan-950/30 to-blue-950/30 border border-cyan-800/50 rounded-xl p-5">
+          <div className="surface-focus rounded-3xl p-5">
             <div className="flex items-start gap-3">
               <div className="w-8 h-8 rounded-full bg-cyan-600 flex items-center justify-center text-xs font-bold shrink-0 mt-0.5">AI</div>
               <div>
@@ -495,7 +499,7 @@ export default function DebatePage() {
 
               {/* Equilibrium detail */}
               <div className="bg-slate-900 border border-slate-800 rounded-xl p-4">
-                <h3 className="text-sm font-semibold text-purple-400 mb-3">贝叶斯纳什均衡 — 最优策略</h3>
+                <h3 className="text-sm font-semibold text-purple-400 mb-3">策略响应分析 — 建议策略</h3>
                 <div className="grid grid-cols-2 gap-4 text-xs">
                   <div className="bg-slate-800/50 rounded-lg p-3">
                     <div className="text-slate-400 mb-1">候选人均衡策略</div>
@@ -524,7 +528,7 @@ export default function DebatePage() {
           </AnimatePresence>
 
           {/* Footer: Final recommendation */}
-          <div className={`border rounded-xl p-4 text-sm ${
+          <div className={`surface-base rounded-3xl p-4 text-sm ${
             sim.outcome === "accepted" ? "bg-emerald-950/20 border-emerald-800" : "bg-red-950/20 border-red-800"
           }`}>
             <div className="flex items-start gap-3">
@@ -539,6 +543,7 @@ export default function DebatePage() {
           </div>
         </div>
       )}
+    </div>
     </div>
   );
 }

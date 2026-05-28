@@ -1,0 +1,25 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="480" height="300" viewBox="0 0 480 300" role="img" aria-label="复盘 visual asset 46">
+  <defs>
+    <radialGradient id="g46" cx="45%" cy="35%" r="70%">
+      <stop offset="0%" stop-color="#fbbf24" stop-opacity="0.34"/>
+      <stop offset="48%" stop-color="#22d3ee" stop-opacity="0.16"/>
+      <stop offset="100%" stop-color="#080a10" stop-opacity="1"/>
+    </radialGradient>
+    <linearGradient id="line46" x1="0" x2="1" y1="0" y2="1">
+      <stop offset="0" stop-color="#fbbf24"/>
+      <stop offset="1" stop-color="#22d3ee"/>
+    </linearGradient>
+    <filter id="glow46" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur stdDeviation="5" result="blur"/>
+      <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+  </defs>
+  <rect width="480" height="300" rx="28" fill="#080a10"/>
+  <rect x="1" y="1" width="478" height="298" rx="27" fill="url(#g46)" stroke="#fbbf24" stroke-opacity="0.22"/>
+  <g opacity="0.22"><path d="M57 75 C 137 47, 281 103, 361 75" stroke="#fbbf24" stroke-opacity="0.22" stroke-width="1.2" fill="none"/><path d="M70 109 C 150 81, 342 137, 422 109" stroke="#fbbf24" stroke-opacity="0.30" stroke-width="1.2" fill="none"/><path d="M83 143 C 163 115, 323 171, 403 143" stroke="#fbbf24" stroke-opacity="0.38" stroke-width="1.2" fill="none"/><path d="M96 177 C 176 149, 304 205, 384 177" stroke="#fbbf24" stroke-opacity="0.22" stroke-width="1.2" fill="none"/><path d="M49 211 C 129 183, 285 239, 365 211" stroke="#fbbf24" stroke-opacity="0.30" stroke-width="1.2" fill="none"/><path d="M62 245 C 142 217, 346 273, 426 245" stroke="#fbbf24" stroke-opacity="0.38" stroke-width="1.2" fill="none"/></g>
+  <ellipse cx="269" cy="177" rx="114" ry="74" fill="none" stroke="url(#line46)" stroke-width="1.8" filter="url(#glow46)"/>
+  <ellipse cx="269" cy="177" rx="57" ry="37" fill="none" stroke="#22d3ee" stroke-opacity="0.65" stroke-width="1.2" transform="rotate(9 269 177)"/>
+  <g><circle cx="137" cy="67" r="3" fill="#fbbf24" fill-opacity="0.75"/><circle cx="166" cy="196" r="4" fill="#22d3ee" fill-opacity="0.75"/><circle cx="195" cy="105" r="5" fill="#fbbf24" fill-opacity="0.75"/><circle cx="224" cy="234" r="6" fill="#22d3ee" fill-opacity="0.75"/><circle cx="253" cy="143" r="3" fill="#fbbf24" fill-opacity="0.75"/><circle cx="282" cy="52" r="4" fill="#22d3ee" fill-opacity="0.75"/><circle cx="311" cy="181" r="5" fill="#fbbf24" fill-opacity="0.75"/><circle cx="340" cy="90" r="6" fill="#22d3ee" fill-opacity="0.75"/><circle cx="369" cy="219" r="3" fill="#fbbf24" fill-opacity="0.75"/></g>
+  <text x="34" y="252" fill="#e8e6e0" font-family="ui-sans-serif, system-ui" font-size="22" font-weight="800">复盘</text>
+  <text x="34" y="274" fill="#fbbf24" font-family="ui-monospace, monospace" font-size="11" letter-spacing="3">DEBRIEF / 046</text>
+</svg>

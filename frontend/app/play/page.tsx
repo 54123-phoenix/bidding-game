@@ -9,12 +9,15 @@ import { useNegotiation } from "./hooks/useNegotiation";
 import { useInfoWar } from "./hooks/useInfoWar";
 import { useDebrief } from "./hooks/useDebrief";
 import { useAchievements } from "./hooks/useAchievements";
+import { loadUserProfile } from "@/lib/user-profile";
 import PlaySetupStep from "./components/PlaySetupStep";
 import PlayNegotiationStep from "./components/PlayNegotiationStep";
 import PlayResultsStep from "./components/PlayResultsStep";
 import AchievementPopup from "./components/AchievementPopup";
 import NegotiationArena from "./components/NegotiationArena";
 import TutorialModal from "./components/TutorialModal";
+import type { RoundInsight } from "./components/RoundInsightPanel";
+import type { DeliberationView, ResumeView, RoundActionView } from "./hooks/types";
 
 type Step = 1 | 2 | 3;
 type NegotiationMode = "buttons" | "freeText";
@@ -27,6 +30,7 @@ const STEP_CONFIG = [
 
 function PlayContent() {
   const searchParams = useSearchParams();
+  const quickDemo = searchParams.get("quick") === "1";
 
   const {
     sessionId, setSessionId, step, setStep,
@@ -49,13 +53,15 @@ function PlayContent() {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const [progress, setProgress] = useState("");
-  const [resumePreview, setResumePreview] = useState<Record<string, unknown> | null>(null);
-  const [hrDeliberation, setHrDeliberation] = useState<Record<string, unknown> | null>(null);
+  const [resumePreview, setResumePreview] = useState<ResumeView | null>(null);
+  const [hrDeliberation, setHrDeliberation] = useState<DeliberationView | null>(null);
   const [hrThinking, setHrThinking] = useState(false);
   const [streamingText, setStreamingText] = useState("");
   const [streamingPhase, setStreamingPhase] = useState<"analyze" | "decide" | null>(null);
-  const [setupMode, setSetupMode] = useState<"quick" | "custom">("custom");
   const [negotiationMode, setNegotiationMode] = useState<NegotiationMode>("buttons");
+  const [roundInsight, setRoundInsight] = useState<RoundInsight | null>(null);
+  const [profileResume, setProfileResume] = useState<ResumeView | null>(null);
+  const [usingProfileResume, setUsingProfileResume] = useState(false);
 
   const { ACHIEVEMENTS, achievement, setAchievement, tryUnlockAchievement, resetAchievements } = useAchievements();
 
@@ -67,20 +73,20 @@ function PlayContent() {
     setStep, setError, setLoading, setProgress,
   };
 
-  const { file, setFile, jdText, setJdText, handleQuickDemo, handleFileChange, handleStartNegotiation } = useSetup(setupParams);
+  const { file, setFile, jdText, setJdText, handleFileChange, handleStartNegotiation } = useSetup(setupParams);
 
   const negotiationParams = {
     sessionId, gameRound, jobData, hrPatience,
     setGameRound, setActions, setGameState, setPrompt, setOptions,
     setHrPatience, setHrDeliberation, setHrThinking, setStreamingText, setStreamingPhase,
-    setInfoCards, setTrustState, setInfoNarrative,
+    setInfoCards, setTrustState, setInfoNarrative, setRoundInsight,
     setFinalResult, setEquilibrium, setOutcomeMessage, setStep,
     saveToHistory, tryUnlockAchievement, setError,
   };
 
   const { gameLoading, counterSalary, setCounterSalary, showCounterInput, setShowCounterInput, handleAct } = useNegotiation(negotiationParams);
 
-  const { handleInfoReveal, handleInfoFake, handleInfoConceal } = useInfoWar(
+  const { handleInfoReveal, handleInfoFake, handleInfoConceal, lastInfoPlay } = useInfoWar(
     sessionId, setInfoCards, setTrustState, setInfoNarrative
   );
 
@@ -93,25 +99,47 @@ function PlayContent() {
     setFile(null); setJdText(""); setResumePreview(null);
     setHrDeliberation(null); setHrThinking(false);
     setStreamingText(""); setStreamingPhase(null);
+    setRoundInsight(null);
     setChatMessages([]); setChatInput("");
     resetAchievements();
     setError(""); setLoading(false); setProgress("");
   };
 
+  const useProfileResume = () => {
+    if (!profileResume) return;
+    setFile(null);
+    setResumeData(profileResume);
+    setResumePreview(profileResume);
+    setUsingProfileResume(true);
+  };
+
   // Session recovery on mount
   useEffect(() => {
-    const quick = searchParams.get("quick");
     const review = searchParams.get("review");
     const session = searchParams.get("session");
 
-    if (quick === "1") { handleQuickDemo(); return; }
+    window.setTimeout(() => {
+      const profile = loadUserProfile();
+      setProfileResume(profile.resume);
+      if (profile.resume && !resumePreview) {
+        setFile(null);
+        setResumeData(profile.resume);
+        setResumePreview(profile.resume);
+        setUsingProfileResume(true);
+      }
+      if (profile.preferredStrategy) setStrategy(profile.preferredStrategy);
+    }, 0);
+
+    if (quickDemo) { window.location.replace("/demo"); return; }
     if (review) { loadHistorySession(review); return; }
 
     if (session) {
-      setSessionId(session);
-      setLoading(true); setProgress("正在恢复会话...");
-      syncFromServer(session).then(() => {
-        setLoading(false); setProgress("");
+      window.setTimeout(() => {
+        setSessionId(session);
+        setLoading(true); setProgress("正在恢复会话...");
+        syncFromServer(session).then(() => {
+          setLoading(false); setProgress("");
+        });
       });
       return;
     }
@@ -123,23 +151,23 @@ function PlayContent() {
   // Achievement checks
   useEffect(() => {
     if (actions.length > 0) {
-      const lastAction = actions[actions.length - 1] as any;
+      const lastAction = actions[actions.length - 1];
       if (lastAction.action_type === "counter_offer") tryUnlockAchievement("first_counter");
     }
     if (gameState && actions.length > 0) {
-      const lastPair = actions.filter((a: any) => a.player === "candidate" || a.player === "hr");
+      const lastPair = actions.filter((a: RoundActionView) => a.player === "candidate" || a.player === "hr");
       if (lastPair.length >= 2) {
-        const candSalary = ((lastPair.filter((a: any) => a.player === "candidate").slice(-1)[0] as any)?.params?.salary_ask ?? 0) as number;
-        const hrSalary = ((lastPair.filter((a: any) => a.player === "hr").slice(-1)[0] as any)?.params?.salary_offer ?? 0) as number;
+        const candSalary = Number(lastPair.filter((a) => a.player === "candidate").slice(-1)[0]?.params?.salary_ask ?? 0);
+        const hrSalary = Number(lastPair.filter((a) => a.player === "hr").slice(-1)[0]?.params?.salary_offer ?? 0);
         if (candSalary && hrSalary && Math.abs(candSalary - hrSalary) <= 5) tryUnlockAchievement("gap_5k");
       }
     }
-    if (gameRound + 1 >= ((gameState as any)?.max_rounds || 5)) tryUnlockAchievement("marathon");
+    if (gameRound + 1 >= (gameState?.max_rounds || 5)) tryUnlockAchievement("marathon");
     if (hrPatience >= 0.8 && gameRound > 0) tryUnlockAchievement("patience_master");
   }, [actions, gameState, gameRound, hrPatience, tryUnlockAchievement]);
 
   const hrPersonaView = hrPersona
-    ? { name: String((hrPersona as any).name || ""), tagline: String((hrPersona as any).tagline || "") }
+    ? { name: String(hrPersona.name || ""), tagline: String(hrPersona.tagline || "") }
     : undefined;
 
   return (
@@ -152,15 +180,15 @@ function PlayContent() {
 
       <NegotiationArena
         round={gameRound}
-        maxRounds={((gameState as any)?.max_rounds as number) || 5}
+        maxRounds={gameState?.max_rounds || 5}
         isThinking={hrThinking}
         outcome={step === 3 ? (finalResult?.outcome === "accepted" ? "accepted" : "rejected") : null}
       >
         <AchievementPopup achievement={achievement} onDismiss={() => setAchievement(null)} />
 
-        <div className="max-w-6xl mx-auto px-4 py-6">
+        <div className="mx-auto max-w-[1480px] px-4 py-6 md:px-6">
           {/* Step indicator */}
-          <div className="flex items-center justify-center gap-2 mb-8">
+          <div className="mb-8 flex items-center justify-center gap-2">
             {STEP_CONFIG.map((cfg, i) => {
               const s = (i + 1) as Step;
               const active = step >= s;
@@ -168,16 +196,14 @@ function PlayContent() {
               return (
                 <div key={s} className="flex items-center gap-2">
                   <motion.div
-                    className="flex items-center gap-2.5 px-4 py-2 rounded-xl border transition-all cursor-default"
+                    className="flex cursor-default items-center gap-2.5 rounded-full border px-4 py-2 transition-all"
                     style={{
-                      borderColor: active ? "var(--accent-cyan)40" : "var(--border-hairline)",
-                      backgroundColor: active ? "var(--accent-cyan-glow)" : "transparent",
-                      boxShadow: active ? "0 0 20px var(--accent-cyan-glow)" : "none",
+                      borderColor: active ? "rgba(34,211,238,0.24)" : "rgba(148,163,184,0.10)",
+                      backgroundColor: active ? "rgba(34,211,238,0.08)" : "rgba(14,18,25,0.52)",
+                      boxShadow: "none",
                     }}
-                    animate={active ? { scale: [1, 1.02, 1] } : {}}
-                    transition={{ duration: 0.5 }}
                   >
-                    <span className="text-base">{cfg.icon}</span>
+                    <span className="text-sm">{cfg.icon}</span>
                     <div className="flex flex-col">
                       <span className="text-xs font-bold" style={{ color: active ? "var(--accent-cyan)" : "var(--text-tertiary)" }}>
                         {cfg.label}
@@ -198,13 +224,7 @@ function PlayContent() {
                     )}
                   </motion.div>
                   {s < 3 && (
-                    <motion.div
-                      className="h-px rounded"
-                      initial={{ width: 0 }}
-                      animate={{ width: done ? 32 : 16 }}
-                      style={{ backgroundColor: done ? "var(--accent-cyan)60" : "var(--border-hairline)" }}
-                      transition={{ duration: 0.4, delay: 0.2 }}
-                    />
+                    <div className="h-px w-6 rounded bg-[var(--border-hairline)]" />
                   )}
                 </div>
               );
@@ -214,7 +234,7 @@ function PlayContent() {
           {/* Error banner */}
           {error && (
             <motion.div
-              className="mb-6 p-4 rounded-xl border border-[var(--state-danger)]/30 bg-[var(--state-danger)]/10 text-[var(--state-danger)] text-sm"
+              className="surface-base mb-6 rounded-2xl p-4 text-sm text-[var(--state-danger)]"
               initial={{ opacity: 0, y: -10 }}
               animate={{ opacity: 1, y: 0 }}
             >
@@ -225,7 +245,7 @@ function PlayContent() {
           {/* Session expired banner */}
           {sessionExpired && (
             <motion.div
-              className="mb-6 p-4 rounded-xl border border-[var(--interviewer-amber)]/30 bg-[var(--interviewer-amber)]/10 text-[var(--interviewer-amber)] text-sm flex items-center justify-between"
+              className="surface-base mb-6 flex items-center justify-between rounded-2xl p-4 text-sm text-[var(--interviewer-amber)]"
               initial={{ opacity: 0, y: -10 }}
               animate={{ opacity: 1, y: 0 }}
             >
@@ -242,7 +262,7 @@ function PlayContent() {
           {/* Loading */}
           {loading && (
             <motion.div
-              className="rounded-xl border border-[var(--border-hairline)] bg-[var(--bg-panel)] p-10 text-center mb-6"
+              className="surface-raised mb-6 rounded-3xl p-10 text-center"
               initial={{ opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}
             >
@@ -272,8 +292,6 @@ function PlayContent() {
           {/* Step content */}
           {step === 1 && !loading && (
             <PlaySetupStep
-              setupMode={setupMode}
-              setSetupMode={setSetupMode}
               resumePreview={resumePreview}
               resumeData={resumeData}
               setResumeData={setResumeData}
@@ -288,11 +306,14 @@ function PlayContent() {
               setModel={setModel}
               jdText={jdText}
               setJdText={setJdText}
-              handleQuickDemo={handleQuickDemo}
               handleFileChange={handleFileChange}
               handleStartNegotiation={handleStartNegotiation}
               setResumePreview={setResumePreview}
               setFile={setFile}
+              profileResume={profileResume}
+              useProfileResume={useProfileResume}
+              usingProfileResume={usingProfileResume}
+              setUsingProfileResume={setUsingProfileResume}
             />
           )}
 
@@ -312,6 +333,8 @@ function PlayContent() {
               infoCards={infoCards}
               trustState={trustState}
               infoNarrative={infoNarrative}
+              lastInfoPlay={lastInfoPlay}
+              roundInsight={roundInsight}
               streamingText={streamingText}
               streamingPhase={streamingPhase}
               prompt={prompt}

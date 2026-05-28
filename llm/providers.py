@@ -59,7 +59,7 @@ def _build_dashscope_callable(api_key: str, api_base: str, default_model: str, t
                         {"role": "user", "content": prompt},
                     ],
                     "temperature": 0.1,
-                    "max_tokens": 2048,
+                    "max_tokens": 4096,
                 },
             )
             resp.raise_for_status()
@@ -77,7 +77,7 @@ def _build_dashscope_callable(api_key: str, api_base: str, default_model: str, t
                     "model": model or default_model,
                     "messages": messages,
                     "temperature": temperature,
-                    "max_tokens": 2048,
+                    "max_tokens": 4096,
                 },
             )
             resp.raise_for_status()
@@ -94,7 +94,7 @@ def _build_dashscope_callable(api_key: str, api_base: str, default_model: str, t
                 },
                 json={
                     "model": model or default_model, "messages": messages,
-                    "temperature": temperature, "max_tokens": 2048, "stream": True,
+                    "temperature": temperature, "max_tokens": 4096, "stream": True,
                 },
             ) as resp:
                 resp.raise_for_status()

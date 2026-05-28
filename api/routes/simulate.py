@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from fastapi import APIRouter
+from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel, Field
 
 from game.engine import BiddingGameEngine
@@ -48,4 +48,4 @@ async def simulate(request: SimulateRequest):
             "equilibrium": eq.model_dump(),
         }
     except Exception as e:
-        return {"status": "error", "message": str(e)}
+        raise HTTPException(status_code=500, detail=str(e))

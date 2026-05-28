@@ -1,0 +1,25 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="480" height="300" viewBox="0 0 480 300" role="img" aria-label="谈判 visual asset 49">
+  <defs>
+    <radialGradient id="g49" cx="45%" cy="35%" r="70%">
+      <stop offset="0%" stop-color="#22d3ee" stop-opacity="0.34"/>
+      <stop offset="48%" stop-color="#60a5fa" stop-opacity="0.16"/>
+      <stop offset="100%" stop-color="#080a10" stop-opacity="1"/>
+    </radialGradient>
+    <linearGradient id="line49" x1="0" x2="1" y1="0" y2="1">
+      <stop offset="0" stop-color="#22d3ee"/>
+      <stop offset="1" stop-color="#60a5fa"/>
+    </linearGradient>
+    <filter id="glow49" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur stdDeviation="5" result="blur"/>
+      <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+  </defs>
+  <rect width="480" height="300" rx="28" fill="#080a10"/>
+  <rect x="1" y="1" width="478" height="298" rx="27" fill="url(#g49)" stroke="#22d3ee" stroke-opacity="0.22"/>
+  <g opacity="0.22"><path d="M52 74 C 132 46, 306 102, 386 74" stroke="#22d3ee" stroke-opacity="0.22" stroke-width="1.2" fill="none"/><path d="M65 108 C 145 80, 287 136, 367 108" stroke="#22d3ee" stroke-opacity="0.30" stroke-width="1.2" fill="none"/><path d="M78 142 C 158 114, 348 170, 428 142" stroke="#22d3ee" stroke-opacity="0.38" stroke-width="1.2" fill="none"/><path d="M91 176 C 171 148, 329 204, 409 176" stroke="#22d3ee" stroke-opacity="0.22" stroke-width="1.2" fill="none"/><path d="M104 210 C 184 182, 310 238, 390 210" stroke="#22d3ee" stroke-opacity="0.30" stroke-width="1.2" fill="none"/><path d="M57 244 C 137 216, 291 272, 371 244" stroke="#22d3ee" stroke-opacity="0.38" stroke-width="1.2" fill="none"/></g>
+  <ellipse cx="164" cy="102" rx="56" ry="48" fill="none" stroke="url(#line49)" stroke-width="1.8" filter="url(#glow49)"/>
+  <ellipse cx="164" cy="102" rx="28" ry="24" fill="none" stroke="#60a5fa" stroke-opacity="0.65" stroke-width="1.2" transform="rotate(4 164 102)"/>
+  <g><circle cx="302" cy="232" r="3" fill="#22d3ee" fill-opacity="0.75"/><circle cx="386" cy="196" r="4" fill="#60a5fa" fill-opacity="0.75"/><circle cx="90" cy="160" r="5" fill="#22d3ee" fill-opacity="0.75"/><circle cx="174" cy="124" r="6" fill="#60a5fa" fill-opacity="0.75"/><circle cx="258" cy="88" r="3" fill="#22d3ee" fill-opacity="0.75"/><circle cx="342" cy="52" r="4" fill="#60a5fa" fill-opacity="0.75"/><circle cx="426" cy="236" r="5" fill="#22d3ee" fill-opacity="0.75"/><circle cx="130" cy="200" r="6" fill="#60a5fa" fill-opacity="0.75"/><circle cx="214" cy="164" r="3" fill="#22d3ee" fill-opacity="0.75"/></g>
+  <text x="34" y="252" fill="#e8e6e0" font-family="ui-sans-serif, system-ui" font-size="22" font-weight="800">谈判</text>
+  <text x="34" y="274" fill="#22d3ee" font-family="ui-monospace, monospace" font-size="11" letter-spacing="3">NEGOTIATION / 049</text>
+</svg>

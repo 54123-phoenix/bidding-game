@@ -106,6 +106,8 @@
 }
 
 :root {
+  --font-sans: "Microsoft YaHei UI", "Microsoft YaHei", "PingFang SC", "Noto Sans CJK SC", system-ui, sans-serif;
+  --font-geist-mono: "Cascadia Code", "JetBrains Mono", Consolas, monospace;
   --bg-canvas: #080a10;
   --bg-panel: #0e1219;
   --bg-elev: #151b26;
@@ -117,6 +119,8 @@
   --text-tertiary: #5a6578;
   --accent-cyan: #22d3ee;
   --accent-cyan-glow: #22d3ee33;
+  --accent-ali: #ff6a00;
+  --accent-ali-glow: #ff6a0033;
   --accent-green: #bef264;
   --accent-green-glow: #bef26433;
   --state-running: #bef264;
@@ -206,5 +210,160 @@
   }
   html {
     @apply font-sans;
+    color-scheme: dark;
+  }
+}
+
+@layer utilities {
+  .product-shell {
+    background:
+      radial-gradient(circle at 50% 0%, rgba(34, 211, 238, 0.08), transparent 30%),
+      linear-gradient(180deg, #0b0f17 0%, #080a10 48%, #090b10 100%);
+  }
+
+  .surface-base {
+    border: 1px solid rgba(148, 163, 184, 0.10);
+    background: rgba(14, 18, 25, 0.72);
+    box-shadow: 0 18px 60px rgba(0, 0, 0, 0.20), inset 0 1px 0 rgba(255, 255, 255, 0.025);
+    backdrop-filter: blur(14px);
+  }
+
+  .surface-raised {
+    border: 1px solid rgba(148, 163, 184, 0.14);
+    background: linear-gradient(180deg, rgba(18, 24, 34, 0.88), rgba(11, 15, 23, 0.88));
+    box-shadow: 0 24px 80px rgba(0, 0, 0, 0.26), inset 0 1px 0 rgba(255, 255, 255, 0.035);
+    backdrop-filter: blur(18px);
+  }
+
+  .surface-focus {
+    border: 1px solid rgba(34, 211, 238, 0.22);
+    background: linear-gradient(180deg, rgba(17, 27, 39, 0.92), rgba(10, 15, 23, 0.92));
+    box-shadow: 0 24px 90px rgba(0, 0, 0, 0.30), 0 0 0 1px rgba(34, 211, 238, 0.04), inset 0 1px 0 rgba(255, 255, 255, 0.04);
+    backdrop-filter: blur(20px);
+  }
+
+  .primary-action {
+    border: 1px solid rgba(34, 211, 238, 0.24);
+    background: linear-gradient(135deg, #0e7490, #1d4ed8);
+    color: white;
+    box-shadow: 0 14px 36px rgba(14, 116, 144, 0.22);
+  }
+
+  .primary-action:hover {
+    filter: brightness(1.08);
+  }
+
+  .quiet-grid {
+    background-image:
+      linear-gradient(rgba(148, 163, 184, 0.035) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(148, 163, 184, 0.035) 1px, transparent 1px);
+    background-size: 48px 48px;
+  }
+
+  .ai-chip {
+    border: 1px solid rgba(34, 211, 238, 0.22);
+    background: rgba(34, 211, 238, 0.10);
+    color: var(--accent-cyan);
+    box-shadow: 0 0 18px rgba(34, 211, 238, 0.08);
+  }
+
+  .strategy-chip {
+    border: 1px solid rgba(255, 106, 0, 0.24);
+    background: rgba(255, 106, 0, 0.10);
+    color: var(--accent-ali);
+    box-shadow: 0 0 18px rgba(255, 106, 0, 0.08);
+  }
+
+  .micro-grid {
+    background-image:
+      linear-gradient(rgba(34, 211, 238, 0.045) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(34, 211, 238, 0.045) 1px, transparent 1px);
+    background-size: 32px 32px;
+  }
+
+  .scanline-soft {
+    background: repeating-linear-gradient(
+      to bottom,
+      rgba(255,255,255,0.025),
+      rgba(255,255,255,0.025) 1px,
+      transparent 1px,
+      transparent 5px
+    );
+  }
+
+  .tactical-home.product-shell {
+    background: #05070a;
+  }
+
+  .holo-card {
+    position: relative;
+    min-height: 430px;
+    overflow: hidden;
+    border: 1px solid rgba(255, 255, 255, 0.03);
+    border-radius: 28px;
+    background: rgba(14, 18, 24, 0.45);
+    backdrop-filter: blur(12px);
+    opacity: 0.72;
+    transition: opacity 420ms cubic-bezier(0.16, 1, 0.3, 1), border-color 420ms cubic-bezier(0.16, 1, 0.3, 1);
+  }
+
+  .holo-card.is-active {
+    opacity: 1;
+    border-color: rgba(0, 243, 255, 0.18);
+  }
+
+  .holo-link-base {
+    fill: none;
+    stroke: rgba(255, 255, 255, 0.1);
+    stroke-width: 1.2;
+  }
+
+  .holo-link-energy {
+    fill: none;
+    stroke: #00f3ff;
+    stroke-width: 2;
+    stroke-linecap: round;
+    stroke-dasharray: 18 420;
+    stroke-dashoffset: 0;
+    filter: drop-shadow(0 0 8px rgba(0, 243, 255, 0.55));
+    animation: current-flow 2.8s linear infinite;
+  }
+
+  .scan-green {
+    color: #00ff66;
+    border-color: rgba(0, 255, 102, 0.22);
+    animation: green-pulse 160ms steps(2, end) 5;
+  }
+
+  @keyframes current-flow {
+    to { stroke-dashoffset: -438; }
+  }
+
+  @keyframes holo-marquee {
+    to { transform: translateX(-100%); }
+  }
+
+  @keyframes holo-breath {
+    0%, 100% { opacity: 0.64; }
+    50% { opacity: 1; }
+  }
+
+  @keyframes radar-sweep {
+    to { transform: rotate(360deg); }
+  }
+
+  @keyframes green-pulse {
+    50% { color: rgba(0, 255, 102, 0.35); }
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    scroll-behavior: auto !important;
+    transition-duration: 0.01ms !important;
   }
 }

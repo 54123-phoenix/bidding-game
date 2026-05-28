@@ -22,6 +22,7 @@ load_dotenv()
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
+import httpx
 
 from core.config import app_config, setup_logging
 
@@ -85,15 +86,17 @@ def create_app() -> FastAPI:
         try:
             from api.session_store import get_store
             store = get_store()
-            checks["redis"] = store.exists("__health_check__") is not None or True
+            store.set("__health_check__", {"ok": True}, ttl=10)
+            checks["redis"] = store.exists("__health_check__")
         except Exception:
             checks["redis"] = False
         # Qdrant check
         try:
-            import os, urllib.request
+            import os
             qdrant_url = os.getenv("QDRANT_URL", "http://localhost:6333")
-            urllib.request.urlopen(f"{qdrant_url}/healthz", timeout=2)
-            checks["qdrant"] = True
+            async with httpx.AsyncClient() as client:
+                resp = await client.get(f"{qdrant_url}/healthz", timeout=2.0)
+                checks["qdrant"] = resp.status_code == 200
         except Exception:
             checks["qdrant"] = False
         all_ok = all(checks.values())

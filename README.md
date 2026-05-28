@@ -2,7 +2,9 @@
 
 **Multi-Agent Bayesian Hiring Game Simulation** for the Chinese tech industry.
 
-4个AI Agent（候选人、HR、面试官、市场环境）在信息不对称下的多轮薪资博弈模拟，结合12维评估体系、贝叶斯均衡求解、反事实分析、AI辩论引擎与信息战机制。
+4个AI Agent（候选人、HR、面试官、市场环境）在信息不对称下的多轮薪资博弈模拟。当前版本已实现可运行的规则优先谈判引擎、交互式游戏 API、前端主流程、5个核心评估维度、简化贝叶斯均衡分析、反事实分析、AI辩论报告与信息战机制。动态博弈相关维度主要在谈判过程与复盘中呈现。
+
+> Current scope: this is a competition-oriented prototype, not a production hiring decision system. LLM, retrieval, equilibrium and counterfactual modules are available, but the authoritative path is deterministic rule-based simulation with optional LLM text generation.
 
 ## Architecture
 
@@ -14,12 +16,12 @@ bidding-game/
 │   └── routes/           # upload, simulate, counterfactual, report, debate, game, demo, debrief_chat
 ├── core/                 # Domain logic (no API dependency)
 │   ├── config.py         # Centralized configuration (env vars)
-│   ├── signal_extractor.py  # Resume → 12-dimension career signals
+│   ├── signal_extractor.py  # Resume → structured career signals
 │   ├── china_market_model.py # China-specific market data & rules
 │   └── knowledge/        # Skill synonyms, school/company/competition classification
 ├── game/                 # Game engine
 │   ├── engine.py         # Multi-round Bayesian negotiation orchestrator
-│   ├── equilibrium.py    # Bayesian Nash Equilibrium solver
+│   ├── equilibrium.py    # Simplified best-response strategy analysis
 │   ├── payoff.py         # Payoff functions for all 4 agents
 │   ├── patience.py       # Dynamic bilateral patience system
 │   ├── persona.py        # HR persona generation
@@ -28,17 +30,17 @@ bidding-game/
 │   ├── infowar.py        # Information warfare: reveal / fake / conceal signals
 │   ├── strategies/       # Reusable negotiation strategies
 │   └── players/          # Candidate, HR, Interviewer, Market agents
-├── eval/                 # 12-dimension evaluation framework
+├── eval/                 # Evaluation framework (5 implemented dimensions)
 │   ├── dimensions.py     # Dimension definitions & composite scoring
 │   └── scorers/          # hard.py (skill/exp match), signals.py (school/company/competition)
 ├── counterfactual/       # What-if analysis engine (parallel universes)
 ├── debate/               # Evidence-backed proposal builder
-├── retrieval/            # Qdrant vector search + sentence-transformers embedding
+├── retrieval/            # Qdrant vector search + sentence-transformers embedding (supporting module)
 ├── input/                # Resume PDF parsing
 ├── llm/                  # LLM client (DashScope → Ollama → mock fallback)
 ├── models/               # Pydantic schemas (shared data types)
 ├── data/                 # Demo profiles (10 resumes + 15 JDs)
-├── tests/                # Unit tests (66 tests, pytest)
+├── tests/                # Unit tests (pytest)
 ├── frontend/             # Next.js UI
 │   └── app/
 │       ├── play/         # Main negotiation game
@@ -47,9 +49,9 @@ bidding-game/
 │       │   │               # AchievementPopup, TutorialModal, NarrativeResults
 │       │   └── hooks/        # useGameSession, useNegotiation, useInfoWar,
 │       │                   # useDebrief, useAchievements, useSetup
-│       ├── simulation/   # Batch simulation dashboard
-│       ├── analysis/     # 12-dimension structured report
-│       ├── demo/         # Interactive demo gallery
+│       ├── simulation/   # Custom simulation page
+│       ├── analysis/     # Structured evaluation report page
+│       ├── dashboard/    # Session list and review entry
 │       └── debate/       # Evidence-backed AI debate
 ├── docker/               # Dockerfiles for backend & frontend
 ├── docker-compose.yml    # One-command full stack deployment
@@ -92,7 +94,7 @@ python -m venv .venv
 source .venv/bin/activate  # Linux/Mac
 
 # Install dependencies
-pip install -r requirements.txt
+pip install -e .
 
 # Configure LLM (optional — falls back to rule-based mode)
 cp .env.example .env
@@ -119,22 +121,22 @@ pytest tests/ -v
 ## Game Flow
 
 1. **Upload** — Candidate uploads resume PDF → parsed into structured data
-2. **Signal Extraction** — 12 career dimensions extracted: skill match, school prestige, company pedigree, growth trajectory, negotiation leverage, stability risk, T-shape skill assessment, etc.
-3. **Game Simulation** — 4-agent Bayesian negotiation:
+2. **Signal Extraction** — Structured career signals are extracted: skill match, school prestige, company pedigree, growth trajectory, negotiation leverage, stability risk, T-shape skill assessment, etc.
+3. **Game Simulation** — 4-agent rule-first Bayesian-style negotiation:
    - Market emits macro signals (supply/demand ratio, salary trends, hot skills)
    - Interviewer evaluates candidate (skill/experience/domain/soft skills)
    - Candidate and HR negotiate salary/level via alternating offers
    - Patience levels change dynamically based on actions and signals
 4. **Information Warfare** — Candidate can strategically **reveal**, **exaggerate**, or **conceal** resume signals, affecting HR trust and bargaining power
-5. **Equilibrium Analysis** — Bayesian Nash Equilibrium computation with counterfactual what-if scenarios
-6. **Parallel Universes** — Bootstrap-sampled alternative histories showing how different choices could have changed the outcome
-7. **Debate & Debrief** — Structured proposal with computation traces for every claim, plus interactive AI chat for post-game analysis
+5. **Equilibrium Analysis** — Simplified discrete best-response analysis for strategy explanation
+6. **Parallel Universes** — Scenario-style alternative histories showing how different choices could affect the outcome
+7. **Debate & Debrief** — Structured proposal with computation traces, plus interactive AI chat for post-game analysis
 
 ## Key Design Decisions
 
-- **Deterministic-first**: All scoring is rule-based. LLM is optional for natural language generation only.
+- **Deterministic-first**: Core scoring and game mechanics are rule-based. LLM is optional for parsing, deliberation text and natural-language generation, with rule-based fallback.
 - **China-specific**: Encodes real Chinese internet industry structures — Alibaba P-levels, company tiers, implicit age thresholds, talent flow networks.
-- **Computation traces**: Every output number has a verifiable computation path (formula + evidence + code reference).
+- **Computation traces**: Key report numbers include computation paths where implemented; some narrative and scenario outputs remain explanatory rather than statistically validated.
 - **Patience-based termination**: Negotiation ends when either side's patience runs out — not a fixed timer.
 - **Information asymmetry as gameplay**: The "info war" mechanic turns signal manipulation into a core strategic layer, not just a data pipeline step.
 

@@ -110,7 +110,7 @@ export default function SalaryTugOfWar({
 
   return (
     <motion.div
-      className="relative overflow-hidden rounded-xl border border-[var(--border-hairline)] bg-[var(--bg-panel)]"
+      className="surface-focus overflow-hidden rounded-3xl"
       initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.5 }}
@@ -118,13 +118,13 @@ export default function SalaryTugOfWar({
       <div className="absolute inset-0 bg-gradient-to-b from-[var(--candidate-blue-glow)] via-transparent to-[var(--hr-purple-glow)] opacity-20" />
 
       <div className="relative z-10 px-5 py-4">
-        <div className="flex items-center justify-between mb-5">
+        <div className="mb-5 flex items-center justify-between gap-4">
           <div className="flex items-center gap-2.5">
-            <div className="w-6 h-6 rounded-lg bg-amber-500/10 border border-amber-500/20 flex items-center justify-center">
+            <div className="flex h-7 w-7 items-center justify-center rounded-lg border border-[var(--accent-ali)]/25 bg-[var(--accent-ali-glow)] shadow-[0_0_18px_rgba(255,106,0,0.12)]">
               <span className="text-[11px]">⚔️</span>
             </div>
             <span className="text-xs font-bold text-[var(--text-primary)] tracking-wide">
-              薪资战场
+              薪资拉锯战场
             </span>
             {gap !== null && gap > 0 && !isConverging && (
               <motion.span
@@ -154,6 +154,10 @@ export default function SalaryTugOfWar({
                 ✓ 达成一致
               </motion.span>
             )}
+          </div>
+          <div className="hidden items-center gap-2 md:flex">
+            <span className="ai-chip rounded-full px-2 py-0.5 text-[9px] font-bold">报价路径追踪</span>
+            <span className="strategy-chip rounded-full px-2 py-0.5 text-[9px] font-bold">成交张力</span>
           </div>
           <div className="flex items-center gap-4 text-[10px]">
             <span className="flex items-center gap-1.5">
@@ -235,7 +239,7 @@ export default function SalaryTugOfWar({
                       }}
                     >
                       <div
-                        className={`absolute inset-y-0 rounded-full transition-all duration-500 ${
+                        className={`absolute inset-y-0 rounded-full transition-colors duration-500 ${
                           isLast
                             ? isConverging
                               ? "bg-gradient-to-r from-[var(--candidate-blue)]/20 via-[var(--accent-cyan)]/15 to-[var(--hr-purple)]/20"
@@ -287,11 +291,7 @@ export default function SalaryTugOfWar({
                         }}
                         animate={
                           isLast
-                            ? { scale: [1, 1.25, 1], boxShadow: [
-                                "0 0 12px var(--candidate-blue-glow), 0 0 24px var(--candidate-blue-glow)",
-                                "0 0 20px var(--candidate-blue-glow), 0 0 40px var(--candidate-blue-glow)",
-                                "0 0 12px var(--candidate-blue-glow), 0 0 24px var(--candidate-blue-glow)",
-                              ] }
+                            ? { scale: [1, 1.25, 1], opacity: [1, 0.82, 1] }
                             : {}
                         }
                         transition={isLast ? { duration: 2, repeat: Infinity } : {}}
@@ -337,11 +337,7 @@ export default function SalaryTugOfWar({
                         }}
                         animate={
                           isLast
-                            ? { rotate: [45, 55, 45], boxShadow: [
-                                "0 0 12px var(--hr-purple-glow), 0 0 24px var(--hr-purple-glow)",
-                                "0 0 20px var(--hr-purple-glow), 0 0 40px var(--hr-purple-glow)",
-                                "0 0 12px var(--hr-purple-glow), 0 0 24px var(--hr-purple-glow)",
-                              ] }
+                            ? { rotate: [45, 55, 45], opacity: [1, 0.82, 1] }
                             : {}
                         }
                         transition={isLast ? { duration: 2, repeat: Infinity } : {}}

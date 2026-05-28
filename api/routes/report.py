@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from fastapi import APIRouter
+from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 
 from eval.dimensions import compute_composite
@@ -52,4 +52,4 @@ async def report(request: ReportRequest):
             "dimension_count": len(all_scores),
         }
     except Exception as e:
-        return {"status": "error", "message": str(e)}
+        raise HTTPException(status_code=500, detail=str(e))

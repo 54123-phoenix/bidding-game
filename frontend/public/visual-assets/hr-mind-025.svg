@@ -1,0 +1,25 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="480" height="300" viewBox="0 0 480 300" role="img" aria-label="心理 visual asset 25">
+  <defs>
+    <radialGradient id="g25" cx="45%" cy="35%" r="70%">
+      <stop offset="0%" stop-color="#c084fc" stop-opacity="0.34"/>
+      <stop offset="48%" stop-color="#fb7185" stop-opacity="0.16"/>
+      <stop offset="100%" stop-color="#080a10" stop-opacity="1"/>
+    </radialGradient>
+    <linearGradient id="line25" x1="0" x2="1" y1="0" y2="1">
+      <stop offset="0" stop-color="#c084fc"/>
+      <stop offset="1" stop-color="#fb7185"/>
+    </linearGradient>
+    <filter id="glow25" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur stdDeviation="5" result="blur"/>
+      <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+  </defs>
+  <rect width="480" height="300" rx="28" fill="#080a10"/>
+  <rect x="1" y="1" width="478" height="298" rx="27" fill="url(#g25)" stroke="#c084fc" stroke-opacity="0.22"/>
+  <g opacity="0.22"><path d="M60 75 C 140 47, 318 103, 398 75" stroke="#c084fc" stroke-opacity="0.22" stroke-width="1.2" fill="none"/><path d="M73 109 C 153 81, 299 137, 379 109" stroke="#c084fc" stroke-opacity="0.30" stroke-width="1.2" fill="none"/><path d="M86 143 C 166 115, 280 171, 360 143" stroke="#c084fc" stroke-opacity="0.38" stroke-width="1.2" fill="none"/><path d="M99 177 C 179 149, 341 205, 421 177" stroke="#c084fc" stroke-opacity="0.22" stroke-width="1.2" fill="none"/><path d="M52 211 C 132 183, 322 239, 402 211" stroke="#c084fc" stroke-opacity="0.30" stroke-width="1.2" fill="none"/><path d="M65 245 C 145 217, 303 273, 383 245" stroke="#c084fc" stroke-opacity="0.38" stroke-width="1.2" fill="none"/></g>
+  <ellipse cx="232" cy="186" rx="72" ry="32" fill="none" stroke="url(#line25)" stroke-width="1.8" filter="url(#glow25)"/>
+  <ellipse cx="232" cy="186" rx="36" ry="16" fill="none" stroke="#fb7185" stroke-opacity="0.65" stroke-width="1.2" transform="rotate(12 232 186)"/>
+  <g><circle cx="206" cy="208" r="3" fill="#c084fc" fill-opacity="0.75"/><circle cx="258" cy="200" r="4" fill="#fb7185" fill-opacity="0.75"/><circle cx="310" cy="192" r="5" fill="#c084fc" fill-opacity="0.75"/><circle cx="362" cy="184" r="6" fill="#fb7185" fill-opacity="0.75"/><circle cx="414" cy="176" r="3" fill="#c084fc" fill-opacity="0.75"/><circle cx="86" cy="168" r="4" fill="#fb7185" fill-opacity="0.75"/><circle cx="138" cy="160" r="5" fill="#c084fc" fill-opacity="0.75"/><circle cx="190" cy="152" r="6" fill="#fb7185" fill-opacity="0.75"/><circle cx="242" cy="144" r="3" fill="#c084fc" fill-opacity="0.75"/></g>
+  <text x="34" y="252" fill="#e8e6e0" font-family="ui-sans-serif, system-ui" font-size="22" font-weight="800">心理</text>
+  <text x="34" y="274" fill="#c084fc" font-family="ui-monospace, monospace" font-size="11" letter-spacing="3">HR-MIND / 025</text>
+</svg>

@@ -3,6 +3,7 @@
 import pytest
 
 from game.engine import BiddingGameEngine
+from game.type_inferrer import TypeInferrer
 from models.schemas import (
     AgentAction,
     CandidatePrivateType,
@@ -51,104 +52,104 @@ def _state(**overrides) -> GameState:
 
 class TestInferCandidateType:
     def test_balanced_strategy_default(self):
-        engine = BiddingGameEngine(seed=42)
-        ctype = engine._infer_candidate_type(_resume(), "balanced")
+        inferrer = TypeInferrer()
+        ctype = inferrer.infer_candidate_type(_resume(), "balanced")
         assert 0.0 <= ctype.true_ability <= 1.0
         assert ctype.reservation_wage >= 0
         assert 0.0 <= ctype.career_ambition <= 1.0
 
     def test_aggressive_strategy_increases_ability_and_reservation(self):
-        engine = BiddingGameEngine(seed=42)
-        aggressive = engine._infer_candidate_type(_resume(), "aggressive")
-        balanced = engine._infer_candidate_type(_resume(), "balanced")
+        inferrer = TypeInferrer()
+        aggressive = inferrer.infer_candidate_type(_resume(), "aggressive")
+        balanced = inferrer.infer_candidate_type(_resume(), "balanced")
         assert aggressive.true_ability >= balanced.true_ability
         assert aggressive.reservation_wage >= balanced.reservation_wage
 
     def test_conservative_strategy_decreases_ability_and_reservation(self):
-        engine = BiddingGameEngine(seed=42)
-        conservative = engine._infer_candidate_type(_resume(), "conservative")
-        balanced = engine._infer_candidate_type(_resume(), "balanced")
+        inferrer = TypeInferrer()
+        conservative = inferrer.infer_candidate_type(_resume(), "conservative")
+        balanced = inferrer.infer_candidate_type(_resume(), "balanced")
         assert conservative.true_ability <= balanced.true_ability
         assert conservative.reservation_wage <= balanced.reservation_wage
 
     def test_unknown_strategy_defaults_to_balanced(self):
-        engine = BiddingGameEngine(seed=42)
-        result = engine._infer_candidate_type(_resume(), "unknown_strategy")
-        balanced = engine._infer_candidate_type(_resume(), "balanced")
+        inferrer = TypeInferrer()
+        result = inferrer.infer_candidate_type(_resume(), "unknown_strategy")
+        balanced = inferrer.infer_candidate_type(_resume(), "balanced")
         assert result.true_ability == balanced.true_ability
 
 
 class TestInferHRType:
     def test_budget_from_salary_range_top(self):
-        engine = BiddingGameEngine(seed=42)
-        hr_type = engine._infer_hr_type(_job(), "normal")
+        inferrer = TypeInferrer()
+        hr_type = inferrer.infer_hr_type(_job(), "normal")
         assert hr_type.true_budget == _job().salary_range[1]
 
     def test_urgency_by_market_condition(self):
-        engine = BiddingGameEngine(seed=42)
-        hot = engine._infer_hr_type(_job(), "hot")
-        normal = engine._infer_hr_type(_job(), "normal")
-        cool = engine._infer_hr_type(_job(), "cool")
+        inferrer = TypeInferrer()
+        hot = inferrer.infer_hr_type(_job(), "hot")
+        normal = inferrer.infer_hr_type(_job(), "normal")
+        cool = inferrer.infer_hr_type(_job(), "cool")
         assert hot.urgency > normal.urgency > cool.urgency
 
     def test_equity_constraint_is_80_percent_of_budget(self):
-        engine = BiddingGameEngine(seed=42)
-        hr_type = engine._infer_hr_type(_job(), "normal")
+        inferrer = TypeInferrer()
+        hr_type = inferrer.infer_hr_type(_job(), "normal")
         assert hr_type.internal_equity_constraint == int(hr_type.true_budget * 0.80)
 
     def test_default_budget_when_no_range(self):
-        engine = BiddingGameEngine(seed=42)
+        inferrer = TypeInferrer()
         job = StructuredJob(job_id="j2", title="Dev", company="Co")
-        hr_type = engine._infer_hr_type(job, "normal")
+        hr_type = inferrer.infer_hr_type(job, "normal")
         assert hr_type.true_budget == 40
 
 
 class TestInferInterviewerType:
     def test_strictness_in_range(self):
-        engine = BiddingGameEngine(seed=42)
-        itype = engine._infer_interviewer_type()
+        inferrer = TypeInferrer()
+        itype = inferrer.infer_interviewer_type()
         assert 0.3 <= itype.strictness <= 0.7
 
     def test_bias_vector_keys(self):
-        engine = BiddingGameEngine(seed=42)
-        itype = engine._infer_interviewer_type()
+        inferrer = TypeInferrer()
+        itype = inferrer.infer_interviewer_type()
         assert "school_prestige" in itype.bias_vector
         assert "big_company" in itype.bias_vector
         assert "youth" in itype.bias_vector
 
     def test_risk_tolerance_in_range(self):
-        engine = BiddingGameEngine(seed=42)
-        itype = engine._infer_interviewer_type()
+        inferrer = TypeInferrer()
+        itype = inferrer.infer_interviewer_type()
         assert 0.2 <= itype.risk_tolerance <= 0.8
 
     def test_preferred_skill_style_is_valid(self):
-        engine = BiddingGameEngine(seed=42)
-        itype = engine._infer_interviewer_type()
+        inferrer = TypeInferrer()
+        itype = inferrer.infer_interviewer_type()
         assert itype.preferred_skill_style in ("depth", "breadth", "balance")
 
 
 class TestInferMarketType:
     def test_hot_market_low_ratio(self):
-        engine = BiddingGameEngine(seed=42)
-        mtype = engine._infer_market_type("hot", _job())
+        inferrer = TypeInferrer()
+        mtype = inferrer.infer_market_type("hot", _job())
         assert mtype.supply_demand_ratio < 1.0
         assert mtype.salary_trend == "rising"
 
     def test_cool_market_high_ratio(self):
-        engine = BiddingGameEngine(seed=42)
-        mtype = engine._infer_market_type("cool", _job())
+        inferrer = TypeInferrer()
+        mtype = inferrer.infer_market_type("cool", _job())
         assert mtype.supply_demand_ratio > 1.0
         assert mtype.salary_trend == "cooling"
 
     def test_normal_market_stable(self):
-        engine = BiddingGameEngine(seed=42)
-        mtype = engine._infer_market_type("normal", _job())
+        inferrer = TypeInferrer()
+        mtype = inferrer.infer_market_type("normal", _job())
         assert mtype.supply_demand_ratio == 1.0
         assert mtype.salary_trend == "stable"
 
     def test_hot_skills_extracted_from_job(self):
-        engine = BiddingGameEngine(seed=42)
-        mtype = engine._infer_market_type("hot", _job())
+        inferrer = TypeInferrer()
+        mtype = inferrer.infer_market_type("hot", _job())
         assert isinstance(mtype.hot_skills, list)
 
 

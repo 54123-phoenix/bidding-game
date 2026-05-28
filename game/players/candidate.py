@@ -56,11 +56,11 @@ class CandidatePlayer(BayesianPlayer):
 
         # Initial round: make opening salary demand
         if state.round == 0 or state.public_offer is None:
-            return self._make_opening_offer(state, pt)
+            return self._make_opening_offer(state, pt, private_view)
 
         # Negotiating: respond to HR's offer
         if state.public_status == "negotiating":
-            return self._negotiate(state, pt)
+            return self._negotiate(state, pt, private_view)
 
         # Terminal
         return AgentAction(
@@ -69,7 +69,9 @@ class CandidatePlayer(BayesianPlayer):
             round=state.round, timestamp=datetime.now().isoformat(),
         )
 
-    def _make_opening_offer(self, state: GameState, pt: CandidatePrivateType) -> AgentAction:
+    def _make_opening_offer(
+        self, state: GameState, pt: CandidatePrivateType, private_view: dict | None = None
+    ) -> AgentAction:
         """First-move salary demand based on private type + market signals.
 
         Anchors to the candidate's own market value (reservation + ability premium),
@@ -90,6 +92,23 @@ class CandidatePlayer(BayesianPlayer):
 
         # Anchor to own value, but if job band is LOWER than that, cap at band top
         ask = int(best_outside * (1 + ability_premium - ambition_discount))
+
+        # Belief-driven adjustment: if HR is likely high-budget, raise ask up to 8%
+        belief_note = ""
+        if private_view:
+            beliefs = private_view.get("beliefs", {})
+            hr_belief = beliefs.get("hr", {})
+            hr_dist = hr_belief.get("belief_distribution", {})
+            high_budget_prob = (
+                hr_dist.get("high_budget_high_urgency", 0)
+                + hr_dist.get("high_budget_low_urgency", 0)
+            )
+            if high_budget_prob > 0.6:
+                ask = int(ask * 1.08)
+                belief_note = f" Belief: HR high-budget prob={high_budget_prob:.0%} -> ask +8%."
+            elif high_budget_prob < 0.2:
+                ask = int(ask * 0.95)
+                belief_note = f" Belief: HR high-budget prob={high_budget_prob:.0%} -> ask -5%."
 
         # If job's salary band is significantly above our ask (level mismatch),
         # cap at the candidate's realistic ceiling, not the job's band
@@ -118,12 +137,15 @@ class CandidatePlayer(BayesianPlayer):
                 f"Based on ability={pt.true_ability:.0%}, reservation={pt.reservation_wage}K, "
                 f"best outside={best_outside}K. "
                 f"Strategy: {'growth-first' if pt.career_ambition > 0.7 else 'balanced' if pt.career_ambition > 0.3 else 'salary-first'}."
+                + belief_note
             ),
             confidence=pt.true_ability,
             round=state.round, timestamp=datetime.now().isoformat(),
         )
 
-    def _negotiate(self, state: GameState, pt: CandidatePrivateType) -> AgentAction:
+    def _negotiate(
+        self, state: GameState, pt: CandidatePrivateType, private_view: dict | None = None
+    ) -> AgentAction:
         """Respond to HR's offer during negotiation."""
         offer = state.public_offer or 0
         offered_level = state.public_level or state.job.level
@@ -135,11 +157,25 @@ class CandidatePlayer(BayesianPlayer):
         elif pt.career_ambition > 0.7:  # Growth-focused, more flexible
             accept_threshold = int(pt.reservation_wage * 0.90)
 
+        # Belief-driven adjustment: if HR likely low-budget, lower threshold to close deal
+        belief_note = ""
+        if private_view:
+            beliefs = private_view.get("beliefs", {})
+            hr_belief = beliefs.get("hr", {})
+            hr_dist = hr_belief.get("belief_distribution", {})
+            low_budget_prob = (
+                hr_dist.get("low_budget_low_urgency", 0)
+                + hr_dist.get("low_budget_high_urgency", 0)
+            )
+            if low_budget_prob > 0.6:
+                accept_threshold = int(accept_threshold * 0.95)
+                belief_note = f" Belief: HR low-budget prob={low_budget_prob:.0%} -> threshold -5%."
+
         if offer >= accept_threshold:
             return AgentAction(
                 player="candidate", action_type="accept",
                 params={"accepted_salary": offer, "accepted_level": offered_level},
-                reasoning=f"Offer {offer}K meets threshold {accept_threshold}K. Accepting.",
+                reasoning=f"Offer {offer}K meets threshold {accept_threshold}K. Accepting." + belief_note,
                 confidence=0.85, round=state.round,
                 timestamp=datetime.now().isoformat(),
             )
