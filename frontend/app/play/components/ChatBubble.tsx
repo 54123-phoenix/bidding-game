@@ -217,6 +217,13 @@ function getExpression(persona: HRPersona, patience: number, lastActionType?: st
 // ThinkingIndicator — pulsing dots
 // ═══════════════════════════════════════════════════════════════
 
+const HR_THINKING_PHASES = [
+  "评估你的锚点",
+  "检查预算约束",
+  "预测你的底线",
+  "生成 HR 回应",
+];
+
 function ThinkingIndicator({ text }: { text?: string }) {
   return (
     <div className="flex items-start gap-3 px-4 py-3">
@@ -224,24 +231,21 @@ function ThinkingIndicator({ text }: { text?: string }) {
       <div className="w-8 h-8 rounded-full bg-slate-700 border border-slate-600 flex items-center justify-center text-base shrink-0">
         🤔
       </div>
-      <div className="flex flex-col gap-1.5">
+      <div className="flex min-w-0 flex-col gap-2">
         <div className="flex items-center gap-2">
           <span className="text-xs font-medium text-purple-300">HR</span>
           <span className="text-[10px] text-slate-600">思考中</span>
         </div>
-        <div className="flex gap-1.5">
-          {[0, 1, 2].map((i) => (
-            <motion.div
-              key={i}
-              className="w-2 h-2 rounded-full bg-purple-400"
-              animate={{ opacity: [0.2, 1, 0.2], y: [0, -3, 0] }}
-              transition={{
-                duration: 1,
-                repeat: Infinity,
-                delay: i * 0.2,
-                ease: "easeInOut",
-              }}
-            />
+        <div className="grid gap-1.5 sm:grid-cols-2">
+          {HR_THINKING_PHASES.map((phase, i) => (
+            <div key={phase} className="flex items-center gap-1.5 rounded-full border border-purple-400/10 bg-purple-950/20 px-2 py-1">
+              <motion.span
+                className="h-1.5 w-1.5 rounded-full bg-purple-400"
+                animate={{ opacity: [0.25, 1, 0.25] }}
+                transition={{ duration: 1.2, repeat: Infinity, delay: i * 0.18 }}
+              />
+              <span className="text-[10px] text-slate-500">{phase}</span>
+            </div>
           ))}
         </div>
         {text && (
@@ -265,9 +269,9 @@ function StreamingBubble({
 }) {
   const phaseLabel =
     phase === "analyze"
-      ? "HR 正在分析局势…"
+      ? "HR 正在评估锚点与约束…"
       : phase === "decide"
-      ? "HR 正在做决策…"
+      ? "HR 正在生成回应策略…"
       : "HR 正在思考…";
 
   return (
