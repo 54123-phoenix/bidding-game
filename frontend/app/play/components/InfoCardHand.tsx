@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import type { InfoPlayFeedback } from "../hooks/useInfoWar";
+import ReputationBadge from "./ReputationBadge";
 
 interface InfoCard {
   card_id: string;
@@ -86,7 +87,10 @@ export default function InfoCardHand({
             <span className="rounded-full bg-slate-50 px-2 py-0.5">{trustLabel}</span>
           </div>
         </div>
-        <span className="rounded-full bg-[#4F7EFF] px-3 py-1 text-[11px] font-black text-white">剩余 {remaining}</span>
+        <div className="flex shrink-0 items-center gap-2">
+          <ReputationBadge />
+          <span className="rounded-full bg-[#4F7EFF] px-3 py-1 text-[11px] font-black text-white">剩余 {remaining}</span>
+        </div>
       </div>
 
       {lastPlay && (

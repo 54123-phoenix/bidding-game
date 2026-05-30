@@ -2,6 +2,7 @@
 
 import { useCallback, useState } from "react";
 import { API_BASE } from "@/lib/api";
+import { applyReputationEvent, reputationDeltaFor } from "../lib/reputation";
 import type { InfoCardView, TrustStateView } from "./types";
 
 export interface InfoPlayFeedback {
@@ -34,11 +35,18 @@ export function useInfoWar(
     if (d.info_cards) setInfoCards(d.info_cards);
     if (d.trust_state) setTrustState(d.trust_state);
     if (d.narrative) setInfoNarrative(d.narrative);
+    const trustAfter = typeof d.trust_state?.hr_trust_in_candidate === "number" ? d.trust_state.hr_trust_in_candidate : undefined;
     setLastInfoPlay({
       ...feedback,
       narrative: String(d.narrative || "情报已进入谈判桌。"),
-      trustAfter: typeof d.trust_state?.hr_trust_in_candidate === "number" ? d.trust_state.hr_trust_in_candidate : undefined,
+      trustAfter,
     });
+    if (typeof window !== "undefined") {
+      const actionType = feedback.actionType === "reveal" ? "emphasize" : feedback.actionType === "fake" ? "reframe" : "downplay";
+      const rep = reputationDeltaFor(actionType, trustAfter);
+      applyReputationEvent({ actionType, label: feedback.label, trustAfter, ...rep });
+      window.dispatchEvent(new Event("bidding-reputation-updated"));
+    }
   }, [setInfoCards, setTrustState, setInfoNarrative]);
 
   const handleInfoReveal = useCallback(async (cardId: string, value: string | number) => {
