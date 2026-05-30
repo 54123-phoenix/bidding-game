@@ -61,6 +61,7 @@ export default function ParallelUniversePanel({
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(false);
   const [universes, setUniverses] = useState<Universe[]>([]);
+  const hasInputs = Boolean(resumeData && jobData);
 
   const fallback = useMemo<Universe[]>(() => {
     const salary = finalResult?.final_salary ?? (Array.isArray(jobData?.salary_range) ? Math.round((jobData.salary_range[0] + jobData.salary_range[1]) / 2) : 50);
@@ -73,23 +74,21 @@ export default function ParallelUniversePanel({
   }, [finalResult, jobData]);
 
   useEffect(() => {
-    if (!resumeData || !jobData) {
-      setUniverses(fallback);
-      return;
-    }
+    if (!resumeData || !jobData) return;
     let cancelled = false;
-    setLoading(true);
-    setError(false);
-    fetch(`${API_BASE}/api/counterfactual`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ resume: resumeData, job: jobData, strategy, market_condition: marketCondition }),
-    })
-      .then(async (r) => {
-        if (!r.ok) throw new Error(`counterfactual ${r.status}`);
-        return (await r.json()) as CounterfactualResponse;
-      })
-      .then((data) => {
+
+    async function loadCounterfactuals() {
+      setLoading(true);
+      setError(false);
+
+      try {
+        const response = await fetch(`${API_BASE}/api/counterfactual`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ resume: resumeData, job: jobData, strategy, market_condition: marketCondition }),
+        });
+        if (!response.ok) throw new Error(`counterfactual ${response.status}`);
+        const data = (await response.json()) as CounterfactualResponse;
         if (cancelled) return;
         const baseSalary = data.base?.final_salary ?? fallback[0].salary;
         const baseProb = data.base?.success_probability ?? fallback[0].successProb;
@@ -108,20 +107,22 @@ export default function ParallelUniversePanel({
         });
         const current = { label: "当前策略", salary: Math.round(baseSalary), successProb: baseProb, emoji: emoji(baseProb), colorScheme: scheme(baseProb) };
         setUniverses([current, ...mapped].slice(0, 3));
-      })
-      .catch(() => {
+      } catch {
         if (!cancelled) {
           setError(true);
           setUniverses([]);
         }
-      })
-      .finally(() => {
+      } finally {
         if (!cancelled) setLoading(false);
-      });
+      }
+    }
+
+    void loadCounterfactuals();
+
     return () => { cancelled = true; };
   }, [resumeData, jobData, strategy, marketCondition, fallback]);
 
-  if (loading) {
+  if (hasInputs && loading) {
     return (
       <section className="cyber-glass rounded-2xl p-4">
         <div className="mb-3 h-4 w-32 animate-pulse rounded bg-white/10" />
@@ -132,7 +133,7 @@ export default function ParallelUniversePanel({
     );
   }
 
-  if (error) {
+  if (hasInputs && error) {
     return <section className="cyber-glass rounded-2xl p-6 text-center text-sm font-bold text-slate-400">预测暂不可用</section>;
   }
 

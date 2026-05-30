@@ -28,6 +28,56 @@ const STEP_CONFIG = [
   { label: "战局复盘", icon: "📊", sublabel: "分析结果" },
 ];
 
+const SETUP_PHASES = [
+  "读取简历证据",
+  "校准岗位预算",
+  "模拟 HR 立场",
+  "生成开局战术",
+];
+
+function SetupLoadingPanel({ progress }: { progress: string }) {
+  return (
+    <motion.div
+      className="surface-raised mb-6 overflow-hidden rounded-3xl p-6 md:p-8"
+      initial={{ opacity: 0, scale: 0.95 }}
+      animate={{ opacity: 1, scale: 1 }}
+    >
+      <div className="grid gap-6 md:grid-cols-[auto_minmax(0,1fr)] md:items-center">
+        <motion.div
+          className="mx-auto flex h-20 w-20 items-center justify-center rounded-2xl border border-[var(--accent-cyan)]/20 bg-[var(--accent-cyan-glow)] md:mx-0"
+          animate={{ rotate: 360 }}
+          transition={{ duration: 4, repeat: Infinity, ease: "linear" }}
+        >
+          <span className="text-3xl">⚙️</span>
+        </motion.div>
+
+        <div>
+          <div className="text-[10px] font-black uppercase tracking-[0.24em] text-[var(--accent-cyan)]">Negotiation Engine</div>
+          <div className="mt-2 text-lg font-black text-[var(--text-primary)]">正在搭建谈薪作战室</div>
+          <div className="mt-2 text-sm leading-relaxed text-[var(--text-secondary)]">{progress || "模型正在解析输入并生成可追踪的谈判初始状态..."}</div>
+        </div>
+      </div>
+
+      <div className="mt-6 grid gap-2 md:grid-cols-4">
+        {SETUP_PHASES.map((phase, i) => (
+          <div key={phase} className="rounded-2xl border border-[var(--border-hairline)] bg-[var(--bg-panel)]/70 p-3">
+            <div className="flex items-center gap-2">
+              <motion.span
+                className="h-2 w-2 rounded-full bg-[var(--accent-cyan)]"
+                animate={{ opacity: [0.25, 1, 0.25] }}
+                transition={{ duration: 1.2, repeat: Infinity, delay: i * 0.18 }}
+              />
+              <span className="text-xs font-bold text-[var(--text-secondary)]">{phase}</span>
+            </div>
+          </div>
+        ))}
+      </div>
+
+      <div className="mt-5 text-xs text-[var(--text-tertiary)]">模型响应通常需要 10-30 秒，期间会保留真实等待和失败反馈。</div>
+    </motion.div>
+  );
+}
+
 function PlayContent() {
   const searchParams = useSearchParams();
   const quickDemo = searchParams.get("quick") === "1";
@@ -260,34 +310,7 @@ function PlayContent() {
           )}
 
           {/* Loading */}
-          {loading && (
-            <motion.div
-              className="surface-raised mb-6 rounded-3xl p-10 text-center"
-              initial={{ opacity: 0, scale: 0.95 }}
-              animate={{ opacity: 1, scale: 1 }}
-            >
-              <motion.div
-                className="inline-flex items-center justify-center w-20 h-20 rounded-2xl border border-[var(--accent-cyan)]/20 mb-5"
-                style={{ backgroundColor: "var(--accent-cyan-glow)" }}
-                animate={{ rotate: 360 }}
-                transition={{ duration: 4, repeat: Infinity, ease: "linear" }}
-              >
-                <span className="text-3xl">⚙️</span>
-              </motion.div>
-              <div className="text-[var(--text-secondary)] text-sm font-medium mb-3">{progress || "处理中..."}</div>
-              <div className="flex justify-center gap-1.5">
-                {[0, 1, 2].map((i) => (
-                  <motion.div
-                    key={i}
-                    className="w-2 h-2 rounded-full bg-[var(--accent-cyan)]"
-                    animate={{ opacity: [0.2, 1, 0.2], y: [0, -4, 0] }}
-                    transition={{ duration: 1, repeat: Infinity, delay: i * 0.25 }}
-                  />
-                ))}
-              </div>
-              <div className="text-xs text-[var(--text-tertiary)] mt-4">模型响应可能需要 10-30 秒</div>
-            </motion.div>
-          )}
+          {loading && <SetupLoadingPanel progress={progress} />}
 
           {/* Step content */}
           {step === 1 && !loading && (

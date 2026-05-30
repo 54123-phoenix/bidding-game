@@ -1,7 +1,16 @@
 "use client";
 
-import { motion } from "framer-motion";
-import NumberTicker from "@/components/number-ticker";
+import MetricCard, { type MetricTone } from "@/components/ui/metric-card";
+
+interface ResultMetricItem {
+  label: string;
+  value: string | number;
+  suffix?: string;
+  subtext?: string;
+  tone: MetricTone;
+  delay: number;
+  animateNumber: boolean;
+}
 
 interface ResultsGridProps {
   outcome: string;
@@ -28,93 +37,82 @@ export default function ResultsGrid({
 }: ResultsGridProps) {
   const isAccepted = outcome === "accepted";
 
-  const items = [
+  const items: ResultMetricItem[] = [
     {
       label: "结果",
       value: isAccepted ? "已录取" : outcome === "rejected" ? "已拒绝" : "超时",
-      color: isAccepted ? "text-[var(--state-success)]" : "text-[var(--state-danger)]",
+      tone: isAccepted ? "success" : "danger",
       delay: 0.1,
-      isNumber: false,
+      animateNumber: false,
     },
     {
       label: "最终薪资",
       value: finalSalary ?? 0,
       suffix: "K",
       subtext: finalSalary ? `${(finalSalary / 10).toFixed(0)}万/年` : undefined,
-      color: "text-[var(--text-primary)]",
+      tone: "neutral",
       delay: 0.15,
-      isNumber: true,
+      animateNumber: true,
     },
     {
       label: "成功率",
       value: Math.round(successProbability * 100),
       suffix: "%",
-      color: "text-[var(--accent-cyan)]",
+      tone: "cyan",
       delay: 0.2,
-      isNumber: true,
+      animateNumber: true,
     },
     {
       label: "谈判轮次",
       value: negotiationRounds,
-      color: "text-[var(--text-primary)]",
+      tone: "neutral",
       delay: 0.25,
-      isNumber: true,
+      animateNumber: true,
     },
     {
       label: "候选人收益",
       value: candidatePayoff.toFixed(3),
-      color: candidatePayoff > 0.3 ? "text-[var(--state-success)]" : "text-[var(--interviewer-amber)]",
+      tone: candidatePayoff > 0.3 ? "success" : "warning",
       delay: 0.3,
-      isNumber: false,
+      animateNumber: false,
     },
     {
       label: "HR收益",
       value: hrPayoff.toFixed(3),
-      color: hrPayoff > 0.3 ? "text-[var(--state-success)]" : "text-[var(--interviewer-amber)]",
+      tone: hrPayoff > 0.3 ? "success" : "warning",
       delay: 0.35,
-      isNumber: false,
+      animateNumber: false,
     },
     {
       label: "信息不对称成本",
       value: informationAsymmetryCost.toFixed(3),
-      color: "text-[var(--interviewer-amber)]",
+      tone: "warning",
       delay: 0.4,
-      isNumber: false,
+      animateNumber: false,
     },
     {
       label: "均衡解",
       value: equilibriumType === "pure_bne" ? "纯策略BNE" : equilibriumType || "—",
       subtext: solverIterations ? `${solverIterations} 次迭代` : undefined,
-      color: "text-[var(--hr-purple)]",
+      tone: "purple",
       delay: 0.45,
-      isNumber: false,
+      animateNumber: false,
     },
   ];
 
   return (
-    <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+    <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
       {items.map((item) => (
-        <motion.div
+        <MetricCard
           key={item.label}
-          className="surface-base rounded-2xl p-3 text-center"
-          initial={{ opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: item.delay }}
-        >
-          <div className="text-[10px] text-[var(--text-tertiary)] mb-1 uppercase tracking-wider">
-            {item.label}
-          </div>
-          <div className={`text-lg font-bold ${item.color}`}>
-            {item.isNumber && typeof item.value === "number" ? (
-              <NumberTicker target={item.value} suffix={item.suffix || ""} duration={1.2} autoStart />
-            ) : (
-              <span>{item.value}{item.suffix || ""}</span>
-            )}
-          </div>
-          {item.subtext && (
-            <div className="text-[10px] text-[var(--text-tertiary)] mt-0.5">{item.subtext}</div>
-          )}
-        </motion.div>
+          label={item.label}
+          value={item.value}
+          suffix={item.suffix}
+          subtext={item.subtext}
+          tone={item.tone}
+          delay={item.delay}
+          animateNumber={item.animateNumber}
+        />
       ))}
     </div>
   );

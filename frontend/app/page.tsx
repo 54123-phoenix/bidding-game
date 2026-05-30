@@ -5,6 +5,7 @@ import { motion } from "framer-motion";
 import Link from "next/link";
 import { ArrowRight, BarChart3, LayoutDashboard, PlayCircle, ShieldCheck, Sparkles, UserRound } from "lucide-react";
 import RecentSessions from "@/components/welcome/recent-sessions";
+import TacticalBackdrop from "@/components/ui/tactical-backdrop";
 import { listGames } from "@/lib/game-api";
 import { EMPTY_PROFILE, loadUserProfile, type UserProfile } from "@/lib/user-profile";
 
@@ -37,8 +38,7 @@ export default function Home() {
 
   return (
       <div className="product-shell tactical-home relative min-h-screen overflow-hidden bg-[#05070a]">
-      <div className="pointer-events-none absolute inset-0 quiet-grid opacity-[0.03]" />
-      <div className="pointer-events-none absolute left-1/2 top-16 h-[520px] w-[760px] -translate-x-1/2 rounded-full bg-cyan-400/10 blur-[120px]" />
+      <TacticalBackdrop intensity="quiet" />
 
       <header className="relative z-40 mx-auto flex w-full max-w-6xl items-center justify-between px-5 py-5 md:px-8">
         <div className="text-sm font-black tracking-tight text-white md:text-base">职业博弈模拟</div>
