@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import { seedDemoProfileIfEmpty } from "@/lib/demo-history";
 import { ArrowLeft, Save, UserRound } from "lucide-react";
 import { buildResumeFromProfile, EMPTY_PROFILE, loadUserProfile, saveUserProfile, type UserProfile } from "@/lib/user-profile";
 
@@ -15,6 +16,7 @@ export default function ProfilePage() {
 
   useEffect(() => {
     const timer = window.setTimeout(() => {
+      seedDemoProfileIfEmpty();
       const current = loadUserProfile();
       setProfile(current);
       setSummary(String(current.resume?.summary || ""));

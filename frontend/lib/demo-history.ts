@@ -1,4 +1,5 @@
 import type { GameSession } from "@/lib/game-api";
+import { USER_PROFILE_KEY, type UserProfile } from "@/lib/user-profile";
 
 const HISTORY_KEY = "bidding_history";
 
@@ -216,7 +217,161 @@ const SCENARIOS: DemoScenario[] = [
     outcomeMessage: "谈判成功：全栈候选人用业务贴合度换取中高位报价。",
     recommendation: "适合展示业务影响力证据如何提高 HR 信任。",
   },
+  {
+    id: "demo-pdd-growth-rejected",
+    timestampOffsetHours: 38,
+    resumeName: "Kevin Zhang",
+    resumeSummary: "7年增长后端经验，负责补贴策略、实时实验平台和用户分层投放系统。",
+    skills: ["Java", "Flink", "ClickHouse", "ABTest", "Redis", "高并发"],
+    company: "拼多多",
+    title: "增长平台后端专家",
+    level: "P7+",
+    salaryRange: [75, 115],
+    strategy: "aggressive",
+    marketCondition: "normal",
+    outcome: "rejected",
+    finalSalary: null,
+    successProbability: 0.39,
+    rounds: 5,
+    hr: { name: "高敏", archetype: "pressure_tester", tagline: "压力测试型 HR", tone: "快节奏、反复确认抗压和稳定性" },
+    actions: [
+      { round: 0, player: "market", action_type: "signal", reasoning: "增长平台岗位稀缺，但候选人稳定性和强度匹配会被重点审查。" },
+      { round: 0, player: "interviewer", action_type: "evaluate", reasoning: "技术经验匹配，面试官担心候选人从成熟平台迁移到高压业务后的适应成本。" },
+      { round: 1, player: "candidate", action_type: "counter_offer", salary: 118, reasoning: "我希望 118K，增长实验平台直接影响 GMV 和补贴效率。" },
+      { round: 1, player: "hr", action_type: "offer", salary: 92, reasoning: "HR 认为业务价值成立，但高于团队现金带宽，需要观察候选人弹性。" },
+      { round: 2, player: "candidate", action_type: "signal", reasoning: "强调曾经支持 200+ 并行实验和分钟级策略回滚。" },
+      { round: 2, player: "hr", action_type: "counter_offer", salary: 98, reasoning: "可验证经历提升报价，但 HR 要求用绩效和年终浮动覆盖上行空间。" },
+      { round: 3, player: "candidate", action_type: "counter_offer", salary: 114, reasoning: "坚持现金 114K，否则当前机会成本过高。" },
+      { round: 3, player: "hr", action_type: "wait", reasoning: "HR 认为候选人强绑定现金，暂缓推进并测试是否接受结构性补偿。" },
+      { round: 4, player: "candidate", action_type: "counter_offer", salary: 112, reasoning: "可以小幅降低到 112K，但不接受大比例浮动。" },
+      { round: 4, player: "hr", action_type: "reject", reasoning: "候选人与薪酬结构预期不一致，HR 判断成交概率低，结束谈判。" },
+    ],
+    outcomeMessage: "谈判破裂：现金诉求与高浮动薪酬结构冲突。",
+    recommendation: "高压增长岗位应提前确认薪酬结构，而不是只盯现金月薪。",
+  },
+  {
+    id: "demo-kuaishou-reco-accepted",
+    timestampOffsetHours: 46,
+    resumeName: "Grace Zhou",
+    resumeSummary: "6年推荐算法经验，主导短视频召回链路重构和多目标排序实验。",
+    skills: ["Python", "TensorFlow", "推荐系统", "召回", "排序", "特征平台"],
+    company: "快手",
+    title: "推荐算法工程师",
+    level: "P7",
+    salaryRange: [65, 100],
+    strategy: "balanced",
+    marketCondition: "hot",
+    outcome: "accepted",
+    finalSalary: 88,
+    successProbability: 0.79,
+    rounds: 4,
+    hr: { name: "宋遥", archetype: "talent_hunter", tagline: "业务抢人型 HR", tone: "积极但关注入职时间" },
+    actions: [
+      { round: 0, player: "market", action_type: "signal", reasoning: "推荐算法核心链路人才仍然紧缺，短视频场景迁移成本低。" },
+      { round: 0, player: "interviewer", action_type: "evaluate", reasoning: "召回重构和多目标排序经验直接对应团队当前优化方向。" },
+      { round: 1, player: "candidate", action_type: "counter_offer", salary: 94, reasoning: "我希望 94K，主要基于召回链路重构对播放时长和互动率的提升。" },
+      { round: 1, player: "hr", action_type: "offer", salary: 80, reasoning: "首轮报价偏保守，但 HR 明确表达团队需要尽快补齐算法 owner。" },
+      { round: 2, player: "candidate", action_type: "signal", reasoning: "补充线上 A/B 实验提升播放完成率 1.8%，并说明可两周内入职。" },
+      { round: 2, player: "hr", action_type: "counter_offer", salary: 86, reasoning: "入职确定性和业务指标让 HR 提高报价。" },
+      { round: 3, player: "candidate", action_type: "counter_offer", salary: 90, reasoning: "如果 90K 并明确负责召回优化，我可以优先接受。" },
+      { round: 3, player: "hr", action_type: "counter_offer", salary: 88, reasoning: "88K 更符合审批，同时承诺核心召回方向 owner。" },
+      { round: 4, player: "candidate", action_type: "accept", salary: 88, reasoning: "接受 88K，确认方向 owner 和试用期目标。" },
+    ],
+    outcomeMessage: "谈判成功：业务指标和入职确定性共同推高报价。",
+    recommendation: "推荐算法谈薪要把模型指标、业务指标和到岗时间绑定。",
+  },
+  {
+    id: "demo-baidu-pm-accepted",
+    timestampOffsetHours: 60,
+    resumeName: "Mia Huang",
+    resumeSummary: "5年 AI 产品经理经验，负责企业知识库、RAG 平台和私有化交付。",
+    skills: ["AI 产品", "RAG", "企业服务", "数据分析", "私有化交付", "路线图规划"],
+    company: "百度智能云",
+    title: "AI 平台产品经理",
+    level: "P6",
+    salaryRange: [45, 75],
+    strategy: "conservative",
+    marketCondition: "normal",
+    outcome: "accepted",
+    finalSalary: 58,
+    successProbability: 0.64,
+    rounds: 3,
+    hr: { name: "叶澄", archetype: "process_oriented", tagline: "流程稳健型 HR", tone: "关注匹配和长期稳定" },
+    actions: [
+      { round: 0, player: "market", action_type: "signal", reasoning: "AI 产品岗位热度高，但企业交付经验比概念包装更关键。" },
+      { round: 0, player: "interviewer", action_type: "evaluate", reasoning: "候选人 RAG 和私有化交付经验匹配，但技术深度需要团队补位。" },
+      { round: 1, player: "candidate", action_type: "counter_offer", salary: 62, reasoning: "我期望 62K，企业知识库从 0 到 1 和交付闭环是核心优势。" },
+      { round: 1, player: "hr", action_type: "offer", salary: 54, reasoning: "HR 给出稳妥报价，并希望观察候选人对长期成长的关注。" },
+      { round: 2, player: "candidate", action_type: "counter_offer", salary: 59, reasoning: "我可以接受稳健方案，但希望薪资接近 59K，并明确产品线 ownership。" },
+      { round: 2, player: "hr", action_type: "counter_offer", salary: 58, reasoning: "58K 配合明确 owner 范围更容易审批。" },
+      { round: 3, player: "candidate", action_type: "accept", salary: 58, reasoning: "接受 58K，重点确认产品线 ownership 和客户交付节奏。" },
+    ],
+    outcomeMessage: "谈判成功：保守策略换取稳定成交和明确职责。",
+    recommendation: "产品岗 demo 可突出 ownership、客户交付和长期成长，而非只谈现金。",
+  },
+  {
+    id: "demo-netEase-qa-rejected",
+    timestampOffsetHours: 72,
+    resumeName: "Leo Wu",
+    resumeSummary: "4年测试开发经验，熟悉自动化测试、压测平台和质量度量。",
+    skills: ["Python", "自动化测试", "JMeter", "Playwright", "质量平台", "CI/CD"],
+    company: "网易游戏",
+    title: "测试开发工程师",
+    level: "P6",
+    salaryRange: [32, 52],
+    strategy: "balanced",
+    marketCondition: "cool",
+    outcome: "rejected",
+    finalSalary: null,
+    successProbability: 0.31,
+    rounds: 4,
+    hr: { name: "唐玥", archetype: "risk_averse", tagline: "风险规避型 HR", tone: "谨慎、强调岗位刚需" },
+    actions: [
+      { round: 0, player: "market", action_type: "signal", reasoning: "测试开发岗位供给充足，游戏业务更看重稳定性专项经验。" },
+      { round: 0, player: "interviewer", action_type: "evaluate", reasoning: "自动化能力合格，但缺少游戏客户端专项和线上事故治理案例。" },
+      { round: 1, player: "candidate", action_type: "counter_offer", salary: 50, reasoning: "我希望 50K，因为自动化平台可以降低回归成本。" },
+      { round: 1, player: "hr", action_type: "offer", salary: 38, reasoning: "HR 认为能力可用，但岗位稀缺性不足以支撑高位报价。" },
+      { round: 2, player: "candidate", action_type: "signal", reasoning: "补充压测平台经验，但未覆盖游戏客户端稳定性专项。" },
+      { round: 2, player: "hr", action_type: "counter_offer", salary: 41, reasoning: "HR 小幅上调，但仍强调专项匹配不足。" },
+      { round: 3, player: "candidate", action_type: "counter_offer", salary: 48, reasoning: "我希望至少 48K，否则转向互联网平台测试开发岗位。" },
+      { round: 3, player: "hr", action_type: "reject", reasoning: "岗位匹配证据不足且薪资差距仍大，HR 结束谈判。" },
+    ],
+    outcomeMessage: "谈判破裂：岗位专项匹配不足导致报价上限受限。",
+    recommendation: "测试开发场景应补齐游戏稳定性、客户端兼容和线上事故治理证据。",
+  },
 ];
+
+const DEMO_PROFILE: UserProfile = {
+  name: "Sarah Wang",
+  targetRole: "高级后端 / 云原生平台工程师",
+  targetCity: "北京 / 上海 / 杭州",
+  preferredStrategy: "balanced",
+  resume: {
+    resume_id: "demo-fixed-profile-resume",
+    name: "Sarah Wang",
+    summary: "4年 Go 后端与云原生平台经验，负责过日均 10 亿级消息推送链路和 API 网关重构，擅长高并发、Kubernetes、Kafka 与可观测性建设。",
+    skills: ["Go", "Kafka", "Kubernetes", "Redis", "gRPC", "Prometheus", "Docker", "PostgreSQL", "系统设计"],
+    education: [{ school: "上海交通大学", degree: "硕士", major: "计算机科学与技术", graduation_year: 2022 }],
+    experience: [
+      {
+        company: "字节跳动",
+        title: "后端开发工程师",
+        description: "负责消息中台基础设施建设，设计高可用推送链路；参与 API 网关重构，QPS 提升 3 倍，核心链路 P99 延迟降低 35%。",
+        tech_stack: ["Go", "Kafka", "Redis", "Kubernetes", "gRPC"],
+        start_date: "2022-07",
+        end_date: "至今",
+      },
+      {
+        company: "有赞",
+        title: "后端开发实习生",
+        description: "参与电商订单和营销活动系统开发，熟悉交易链路和缓存一致性问题。",
+        tech_stack: ["Python", "Django", "MySQL", "Redis"],
+        start_date: "2021-06",
+        end_date: "2022-03",
+      },
+    ],
+  },
+};
 
 function toAction(scenario: DemoScenario, index: number) {
   const action = scenario.actions[index];
@@ -339,12 +494,27 @@ export function getDemoGameSessions(): GameSession[] {
   }));
 }
 
+export function seedDemoProfileIfEmpty() {
+  if (typeof window === "undefined") return;
+  try {
+    const raw = window.localStorage.getItem(USER_PROFILE_KEY);
+    if (raw) {
+      const existing = JSON.parse(raw) as Partial<UserProfile>;
+      if (existing.name || existing.resume) return;
+    }
+    window.localStorage.setItem(USER_PROFILE_KEY, JSON.stringify(DEMO_PROFILE));
+  } catch {
+    // Demo seeding should never block the app.
+  }
+}
+
 export function seedDemoHistoryIfEmpty() {
   if (typeof window === "undefined") return;
   try {
+    seedDemoProfileIfEmpty();
     const raw = window.localStorage.getItem(HISTORY_KEY);
     const existing = raw ? JSON.parse(raw) : [];
-    if (Array.isArray(existing) && existing.length > 0) return;
+    if (Array.isArray(existing) && existing.length >= SCENARIOS.length) return;
     window.localStorage.setItem(HISTORY_KEY, JSON.stringify(getDemoHistoryEntries()));
   } catch {
     // Demo seeding should never block the app.
