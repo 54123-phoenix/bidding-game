@@ -16,6 +16,7 @@
 - `docs/judges-faq.md` — prepared answers for reviewer questions.
 - `docs/submission/ppt-outline.md` — slide-by-slide content.
 - `docs/submission/video-script.md` — narration and screen route.
+- `docs/submission/risk-disclosure.md` — bounded claims and reviewer-risk wording.
 - `docs/submission/submission-checklist.md` — this checklist.
 
 ## PPT Checklist
@@ -67,6 +68,8 @@ Check key pages:
 - [ ] `http://localhost:3000/demo`
 
 ## Content Boundaries
+
+Review `docs/submission/risk-disclosure.md` before final export.
 
 Do not claim:
 
