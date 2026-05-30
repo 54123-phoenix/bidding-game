@@ -95,14 +95,14 @@ export default function PlaySetupStep({
       transition={{ duration: 0.5 }}
     >
       <div className="text-center mb-2">
-        <div className="text-xs font-semibold text-[var(--accent-cyan)]">真实使用路径</div>
-        <h1 className="mt-2 text-3xl font-black text-[var(--text-primary)] mb-2">准备你的真实谈薪模拟</h1>
-        <p className="text-[var(--text-tertiary)] text-sm">使用档案简历或上传新简历 + 粘贴岗位 → 系统按你的输入生成谈判状态</p>
+        <div className="text-xs font-semibold text-[var(--accent-cyan)]">Coach Mode 已开启</div>
+        <h1 className="mt-2 text-3xl font-black text-[var(--text-primary)] mb-2">准备你的谈薪教练局</h1>
+        <p className="text-[var(--text-tertiary)] text-sm">使用档案简历或上传新简历 + 粘贴岗位 → 系统会模拟 HR 压价，并在每轮给出下一步建议</p>
       </div>
 
       <div className="grid gap-3 md:grid-cols-3">
+        <SetupGuard label="过程教练" value="每轮解释 HR 如何看你，并建议坚持、让步、举证或转总包" />
         <SetupGuard label="真实输入" value="简历和 JD 会影响评分、报价区间和谈判建议" />
-        <SetupGuard label="动态结果" value="解析失败、等待和不确定性都保留为真实体验的一部分" />
         <SetupGuard label="可信边界" value="输出用于训练，不等同真实市场薪资判断" />
       </div>
 
@@ -274,7 +274,7 @@ export default function PlaySetupStep({
               borderRadius="12px"
               className="w-full py-3 font-semibold text-base disabled:opacity-50"
             >
-              开始薪资博弈
+              开始教练局
             </ShimmerButton>
           </motion.div>
       </AnimatePresence>

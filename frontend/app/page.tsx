@@ -41,7 +41,7 @@ export default function Home() {
       <TacticalBackdrop intensity="quiet" />
 
       <header className="relative z-40 mx-auto flex w-full max-w-6xl items-center justify-between px-5 py-5 md:px-8">
-        <div className="text-sm font-black tracking-tight text-white md:text-base">职业博弈模拟</div>
+        <div className="text-sm font-black tracking-tight text-white md:text-base">薪资谈判教练</div>
         <nav className="flex items-center gap-2 text-xs text-slate-500">
           <Link href="/demo" className="rounded-full px-3 py-1.5 transition hover:text-cyan-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300/50">演示</Link>
           <Link
@@ -67,7 +67,7 @@ export default function Home() {
                 <span className="animate-ping absolute inline-flex h-full w-full rounded-full opacity-75" style={{ backgroundColor: "var(--accent-cyan)" }} />
                 <span className="relative inline-flex rounded-full h-1.5 w-1.5" style={{ backgroundColor: "var(--accent-cyan)" }} />
               </span>
-              AI 辅助 · 规则可追踪 · 可复盘
+              教练模式 · HR 视角 · 可带走话术
             </motion.div>
 
             <motion.h1
@@ -76,7 +76,7 @@ export default function Home() {
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.1 }}
             >
-              谈薪之前，先练一遍。
+              你的薪资谈判教练。
             </motion.h1>
 
             <motion.p
@@ -85,7 +85,7 @@ export default function Home() {
               animate={{ opacity: 1 }}
               transition={{ delay: 0.3 }}
             >
-              可看演示，也可直接开始。
+              模拟 HR 压价，解释每一步为什么该坚持或让步，并生成下次面试可用的谈判备忘录。
             </motion.p>
 
           <motion.div
@@ -110,8 +110,8 @@ export default function Home() {
                     </div>
                     <p className="mt-2 text-xs leading-6 text-slate-500">
                       {profileComplete
-                        ? `${profile.name} · ${profile.targetRole || "目标岗位未填写"}。真实模拟时可直接使用档案简历。`
-                        : "完善个人信息和默认简历后，真实模拟时不用每次上传 PDF。"}
+                        ? `${profile.name} · ${profile.targetRole || "目标岗位未填写"}。教练模式可直接使用档案简历。`
+                        : "完善个人信息和默认简历后，教练模式能基于你的真实筹码给建议。"}
                     </p>
                   </div>
                 </div>
@@ -132,7 +132,7 @@ export default function Home() {
               <div className="relative z-10">
                 <PlayCircle className="mb-5 text-cyan-200" size={24} />
                 <div className="text-xl font-black text-white">观看演示</div>
-                <div className="mt-2 text-xs leading-6 text-slate-500">不用登录，快速了解系统怎么推演谈薪。</div>
+                <div className="mt-2 text-xs leading-6 text-slate-500">不用登录，快速了解教练如何拆解 HR 报价和下一步动作。</div>
                 <div className="mt-5 inline-flex items-center gap-1 text-xs font-black text-cyan-200">进入演示 <ArrowRight size={13} className="transition group-hover:translate-x-1" /></div>
               </div>
             </Link>
@@ -141,7 +141,7 @@ export default function Home() {
               <div className="relative z-10">
                 <LayoutDashboard className="mb-5 text-emerald-200" size={24} />
                 <div className="text-xl font-black text-white">进入仪表盘</div>
-                <div className="mt-2 text-xs leading-6 text-slate-500">管理档案、历史记录，并开始真实模拟。</div>
+                <div className="mt-2 text-xs leading-6 text-slate-500">管理档案、历史记录，并开始带教练提示的谈薪练习。</div>
                 <div className="mt-5 inline-flex items-center gap-1 text-xs font-black text-emerald-200">进入产品 <ArrowRight size={13} className="transition group-hover:translate-x-1" /></div>
               </div>
             </Link>
@@ -152,9 +152,9 @@ export default function Home() {
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.55 }}
           >
-            <HeroProof icon={<Sparkles size={15} />} label="可选演示" value="不必注册也能先看功能" />
-            <HeroProof icon={<BarChart3 size={15} />} label="真实模拟" value="从仪表盘进入你的练习" />
-            <HeroProof icon={<ShieldCheck size={15} />} label="有边界" value="演示和真实结果明确分开" />
+            <HeroProof icon={<Sparkles size={15} />} label="过程教练" value="每轮给出下一步建议" />
+            <HeroProof icon={<BarChart3 size={15} />} label="可解释" value="同步展示 HR 如何看你" />
+            <HeroProof icon={<ShieldCheck size={15} />} label="可带走" value="生成面试可用备忘录" />
           </motion.div>
           </div>
 
@@ -185,9 +185,9 @@ function InteractiveMascot() {
   const [pointer, setPointer] = useState({ x: 0, y: 0 });
   const avatarSeed = mood === "think" ? "market-analyst" : mood === "coach" ? "career-coach" : "negotiation-guide";
   const copy = {
-    idle: "我可以先带你看演示，也可以直接进仪表盘。",
-    coach: "真实模拟从仪表盘开始，会保存历史。",
-    think: "演示是预设剧本，不会伪装成真实建议。",
+    idle: "我可以先带你看演示，也可以直接开始谈薪练习。",
+    coach: "教练模式会解释 HR 怎么看你，并给下一步建议。",
+    think: "演示是预设剧本；真实练习会基于你的档案和岗位生成建议。",
   }[mood];
 
   return (
