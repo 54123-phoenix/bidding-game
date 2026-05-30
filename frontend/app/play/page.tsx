@@ -113,7 +113,7 @@ function PlayContent() {
   const [profileResume, setProfileResume] = useState<ResumeView | null>(null);
   const [usingProfileResume, setUsingProfileResume] = useState(false);
 
-  const { ACHIEVEMENTS, achievement, setAchievement, tryUnlockAchievement, resetAchievements } = useAchievements();
+  const { achievement, setAchievement, tryUnlockAchievement, resetAchievements } = useAchievements();
 
   const setupParams = {
     resumeData, strategy, market, model,
@@ -140,7 +140,7 @@ function PlayContent() {
     sessionId, setInfoCards, setTrustState, setInfoNarrative
   );
 
-  const { chatMessages, setChatMessages, chatInput, setChatInput, chatLoading, setChatLoading, handleAutoDebrief, handleChat } = useDebrief(sessionId);
+  const { setChatMessages, setChatInput, handleChat } = useDebrief(sessionId);
 
   const handleGoHome = () => { window.location.href = "/"; };
 

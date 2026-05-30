@@ -1,7 +1,6 @@
 "use client";
 
 import { motion } from "framer-motion";
-import NumberTicker from "@/components/number-ticker";
 
 // ═══════════════════════════════════════════════════════════
 // Types

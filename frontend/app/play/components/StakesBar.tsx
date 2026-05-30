@@ -61,7 +61,6 @@ export default function StakesBar({
   overallScore,
   round,
   maxRounds,
-  candidateReservationWage,
 }: StakesBarProps) {
   const patienceColor = getPatienceColor(hrPatience);
   const patienceBg = getPatienceBg(hrPatience);

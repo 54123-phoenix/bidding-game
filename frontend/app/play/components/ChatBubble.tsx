@@ -48,13 +48,6 @@ const ACTION_LABELS: Record<string, string> = {
   wait: "等待",
 };
 
-const PLAYER_LABELS: Record<string, string> = {
-  candidate: "你",
-  hr: "HR",
-  interviewer: "面试官",
-  market: "市场",
-};
-
 const BUBBLE_COLORS: Record<string, string> = {
   accept: "bg-emerald-600/20 border-emerald-600/30 text-emerald-200",
   reject: "bg-red-900/30 border-red-700/40 text-red-200",
@@ -491,12 +484,6 @@ export default function ChatBubblePanel({
   // Track when a new HR action is added (to trigger typewriter on the last one)
   const needsTypewriter = visibleActions.length > 0;
 
-  const hrActions = visibleActions.filter((a) => a.player === "hr");
-  const lastHrActionIdx =
-    hrActions.length > 0
-      ? visibleActions.indexOf(hrActions[hrActions.length - 1])
-      : -1;
-
   // Current HR mood (based on last action + patience)
   const currentMood = hrPersona
     ? getHRMoodFromActions(hrPersona.archetype, hrPatience, visibleActions)
@@ -606,7 +593,6 @@ export default function ChatBubblePanel({
           isThinking={isThinking}
           needsTypewriter={needsTypewriter && !isThinking}
           typewriterTrigger={visibleActions.length}
-          lastHrActionIdx={lastHrActionIdx}
         />
 
         {/* Streaming bubble — show live LLM output */}
@@ -636,7 +622,6 @@ function RoundGroupedMessages({
   isThinking,
   needsTypewriter,
   typewriterTrigger,
-  lastHrActionIdx,
 }: {
   actions: RoundAction[];
   hrPersona: HRPersona | null;
@@ -644,7 +629,6 @@ function RoundGroupedMessages({
   isThinking: boolean;
   needsTypewriter: boolean;
   typewriterTrigger: number;
-  lastHrActionIdx: number;
 }) {
   const [collapsedRounds, setCollapsedRounds] = useState<Set<number>>(new Set());
   const prevRoundRef = useRef<number>(-1);
