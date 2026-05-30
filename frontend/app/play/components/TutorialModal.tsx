@@ -10,132 +10,132 @@ interface TutorialModalProps {
 
 const PAGES = [
   {
-    title: "欢迎来到 AI 薪资谈判模拟器",
-    subtitle: "四角色不完备信息博弈",
+    title: "欢迎来到薪资谈判教练",
+    subtitle: "每轮告诉你下一步怎么谈",
     body: (
       <div className="space-y-3 text-sm text-[var(--text-secondary)] leading-relaxed">
         <p>
-          在这个模拟器中，你将扮演<strong className="text-[var(--text-primary)]">候选人</strong>，
-          与三个智能体进行多轮薪资谈判：
+          这里不是单纯“赢一局”的游戏，而是帮你练习真实面试中的薪资判断：
+          <strong className="text-[var(--text-primary)]">何时坚持、何时让步、何时换总包结构</strong>。
         </p>
         <div className="grid grid-cols-2 gap-2">
           <div className="rounded-lg border border-[var(--border-hairline)] bg-[var(--bg-elev)] p-3">
-            <div className="text-xs font-bold text-[var(--candidate-blue)] mb-1">你 — 候选人</div>
-            <div className="text-[11px] text-[var(--text-tertiary)]">选择如何包装真实经历，平衡薪资收益与验证风险</div>
+            <div className="text-xs font-bold text-[var(--accent-cyan)] mb-1">CoachPanel</div>
+            <div className="text-[11px] text-[var(--text-tertiary)]">每轮给出下一步建议和理由</div>
           </div>
           <div className="rounded-lg border border-[var(--border-hairline)] bg-[var(--bg-elev)] p-3">
-            <div className="text-xs font-bold text-[var(--hr-purple)] mb-1">HR</div>
-            <div className="text-[11px] text-[var(--text-tertiary)]">在预算与人才质量间权衡</div>
+            <div className="text-xs font-bold text-[var(--hr-purple)] mb-1">HR 视角</div>
+            <div className="text-[11px] text-[var(--text-tertiary)]">解释 HR 如何判断你的底线和可信度</div>
           </div>
           <div className="rounded-lg border border-[var(--border-hairline)] bg-[var(--bg-elev)] p-3">
-            <div className="text-xs font-bold text-[var(--interviewer-amber)] mb-1">面试官</div>
-            <div className="text-[11px] text-[var(--text-tertiary)]">评估技能匹配度，给出录用建议</div>
+            <div className="text-xs font-bold text-[var(--interviewer-amber)] mb-1">推荐动作</div>
+            <div className="text-[11px] text-[var(--text-tertiary)]">告诉你该举证、报价、转总包或收口</div>
           </div>
           <div className="rounded-lg border border-[var(--border-hairline)] bg-[var(--bg-elev)] p-3">
-            <div className="text-xs font-bold text-[var(--market-rose)] mb-1">市场</div>
-            <div className="text-[11px] text-[var(--text-tertiary)]">供需关系影响双方议价能力</div>
+            <div className="text-xs font-bold text-[var(--market-rose)] mb-1">可带走</div>
+            <div className="text-[11px] text-[var(--text-tertiary)]">结束后生成备忘录、策略树和 What-if 复盘</div>
           </div>
         </div>
         <p className="text-[var(--text-tertiary)] text-xs">
-          核心机制：贝叶斯信念更新 — 每一轮行动都会改变对方对你的判断。
+          目标：让你离开时带着“下次真实面试怎么谈”的具体话术和判断标准。
+        </p>
+      </div>
+    ),
+    icon: "🧭",
+  },
+  {
+    title: "谈薪筹码卡",
+    subtitle: "组织真实经历，管理验证风险",
+    body: (
+      <div className="space-y-3 text-sm text-[var(--text-secondary)] leading-relaxed">
+        <div className="flex items-start gap-3 rounded-lg border border-[var(--accent-cyan)]/20 bg-[var(--accent-cyan-glow)] p-3">
+          <span className="text-lg">🔍</span>
+          <div>
+            <div className="font-bold text-[var(--text-primary)] text-xs mb-0.5">强调</div>
+            <div className="text-[11px] text-[var(--text-tertiary)]">
+              把真实且可验证的优势放到谈判桌上，通常提升信任和议价空间。
+            </div>
+          </div>
+        </div>
+        <div className="flex items-start gap-3 rounded-lg border border-[var(--border-hairline)] bg-[var(--bg-elev)] p-3">
+          <span className="text-lg">✨</span>
+          <div>
+            <div className="font-bold text-[var(--text-primary)] text-xs mb-0.5">重组</div>
+            <div className="text-[11px] text-[var(--text-tertiary)]">
+              换一个更有利的叙事角度表达经历，收益更高，但验证风险也更高。
+            </div>
+          </div>
+        </div>
+        <div className="rounded-lg border border-[var(--border-hairline)] bg-[var(--bg-elev)] p-3">
+          <div className="text-xs font-bold text-[var(--text-primary)] mb-1">信誉影响</div>
+          <div className="grid grid-cols-3 gap-2 text-[11px] text-[var(--text-tertiary)]">
+            <span><strong className="text-[var(--state-success)]">强调</strong>：信誉上升</span>
+            <span><strong className="text-[var(--interviewer-amber)]">重组</strong>：收益与风险并存</span>
+            <span><strong className="text-[var(--state-danger)]">弱化</strong>：短期避险，长期扣分</span>
+          </div>
+        </div>
+      </div>
+    ),
+    icon: "🃏",
+  },
+  {
+    title: "谈判动作",
+    subtitle: "练习真实面试判断",
+    body: (
+      <div className="space-y-3 text-sm text-[var(--text-secondary)] leading-relaxed">
+        <div className="space-y-2">
+          <div className="flex items-center gap-2">
+            <div className="w-5 h-5 rounded bg-[var(--accent-cyan-glow)] border border-[var(--accent-cyan)]/20 flex items-center justify-center text-[10px]">💬</div>
+            <span className="text-xs"><strong className="text-[var(--text-primary)]">自由话术</strong> — 用自然语言表达你的谈薪姿态</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <div className="w-5 h-5 rounded bg-[var(--candidate-blue-glow)] border border-[var(--candidate-blue)]/20 flex items-center justify-center text-[10px]">💰</div>
+            <span className="text-xs"><strong className="text-[var(--text-primary)]">报价/还价</strong> — 给出锚点，同时观察 HR 的耐心和信任变化</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <div className="w-5 h-5 rounded bg-[var(--hr-purple-glow)] border border-[var(--hr-purple)]/20 flex items-center justify-center text-[10px]">🤝</div>
+            <span className="text-xs"><strong className="text-[var(--text-primary)]">接受/拒绝</strong> — 接受不是失败，拒绝前先确认总包和职级空间</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <div className="w-5 h-5 rounded bg-[var(--interviewer-amber-glow)] border border-[var(--interviewer-amber)]/20 flex items-center justify-center text-[10px]">🧠</div>
+            <span className="text-xs"><strong className="text-[var(--text-primary)]">CoachPanel</strong> — 每轮说明下一步动作和 HR 如何看你</span>
+          </div>
+        </div>
+        <p className="text-[var(--text-tertiary)] text-xs">
+          目标不是“赢游戏”，而是练习在真实面试里做更好的谈薪判断。
         </p>
       </div>
     ),
     icon: "🎯",
   },
   {
-    title: "如何开始",
-    subtitle: "两种进入方式",
-    body: (
-      <div className="space-y-3 text-sm text-[var(--text-secondary)] leading-relaxed">
-        <div className="flex items-start gap-3 rounded-lg border border-[var(--accent-cyan)]/20 bg-[var(--accent-cyan-glow)] p-3">
-          <span className="text-lg">⚡</span>
-          <div>
-            <div className="font-bold text-[var(--text-primary)] text-xs mb-0.5">快速体验（推荐首次）</div>
-            <div className="text-[11px] text-[var(--text-tertiary)]">
-              使用预置简历和岗位，一键进入谈判，先感受完整流程。
-            </div>
-          </div>
-        </div>
-        <div className="flex items-start gap-3 rounded-lg border border-[var(--border-hairline)] bg-[var(--bg-elev)] p-3">
-          <span className="text-lg">📄</span>
-          <div>
-            <div className="font-bold text-[var(--text-primary)] text-xs mb-0.5">自定义谈判</div>
-            <div className="text-[11px] text-[var(--text-tertiary)]">
-              上传你的真实简历 + 粘贴目标岗位描述，AI 会解析结构化信息并生成专属博弈场景。
-            </div>
-          </div>
-        </div>
-        <div className="rounded-lg border border-[var(--border-hairline)] bg-[var(--bg-elev)] p-3">
-          <div className="text-xs font-bold text-[var(--text-primary)] mb-1">策略选择</div>
-          <div className="grid grid-cols-3 gap-2 text-[11px] text-[var(--text-tertiary)]">
-            <span><strong className="text-[var(--state-danger)]">激进型</strong>：高开高要</span>
-            <span><strong className="text-[var(--accent-cyan)]">稳健型</strong>：循序渐进</span>
-            <span><strong className="text-[var(--state-success)]">保守型</strong>：低调务实</span>
-          </div>
-        </div>
-      </div>
-    ),
-    icon: "🚀",
-  },
-  {
-    title: "谈判界面",
-    subtitle: "读懂战场信息",
-    body: (
-      <div className="space-y-3 text-sm text-[var(--text-secondary)] leading-relaxed">
-        <div className="space-y-2">
-          <div className="flex items-center gap-2">
-            <div className="w-5 h-5 rounded bg-[var(--accent-cyan-glow)] border border-[var(--accent-cyan)]/20 flex items-center justify-center text-[10px]">📊</div>
-            <span className="text-xs"><strong className="text-[var(--text-primary)]">GameHUD</strong> — 实时显示当前报价、HR耐心值、市场状态</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <div className="w-5 h-5 rounded bg-[var(--candidate-blue-glow)] border border-[var(--candidate-blue)]/20 flex items-center justify-center text-[10px]">💬</div>
-            <span className="text-xs"><strong className="text-[var(--text-primary)]">对话气泡</strong> — 记录每轮候选人与 HR 的交锋</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <div className="w-5 h-5 rounded bg-[var(--hr-purple-glow)] border border-[var(--hr-purple)]/20 flex items-center justify-center text-[10px]">🧠</div>
-            <span className="text-xs"><strong className="text-[var(--text-primary)]">HR 思考过程</strong> — 透明展示 AI 的决策推理与选项评估</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <div className="w-5 h-5 rounded bg-[var(--interviewer-amber-glow)] border border-[var(--interviewer-amber)]/20 flex items-center justify-center text-[10px]">🃏</div>
-            <span className="text-xs"><strong className="text-[var(--text-primary)]">谈薪筹码卡</strong> — 选择强调、重组或弱化真实经历，影响 HR 信任度</span>
-          </div>
-        </div>
-        <p className="text-[var(--text-tertiary)] text-xs">
-          每轮你可以选择：接受报价、还价、或拒绝退出。注意 HR 的耐心会随时间递减。
-        </p>
-      </div>
-    ),
-    icon: "⚔️",
-  },
-  {
-    title: "战局复盘",
-    subtitle: "从失败中学习",
+    title: "复盘与 What-if",
+    subtitle: "把一局练习变成下次面试策略",
     body: (
       <div className="space-y-3 text-sm text-[var(--text-secondary)] leading-relaxed">
         <p>
-          谈判结束后，你将获得完整的<strong className="text-[var(--text-primary)]">战后分析报告</strong>：
+          谈判结束后，你会得到一份可以带走的<strong className="text-[var(--text-primary)]">谈判备忘录</strong>：
         </p>
         <div className="space-y-2">
           <div className="flex items-center gap-2 text-xs">
-            <span className="text-[var(--accent-cyan)]">🌌</span>
-            <span><strong className="text-[var(--text-primary)]">平行宇宙</strong> — 对比不同策略选择下的可能结果</span>
+            <span className="text-[var(--accent-cyan)]">📝</span>
+            <span><strong className="text-[var(--text-primary)]">谈判备忘录</strong> — 总结核心筹码、底线区间和下次可用话术</span>
           </div>
           <div className="flex items-center gap-2 text-xs">
-            <span className="text-[var(--accent-cyan)]">📈</span>
-            <span><strong className="text-[var(--text-primary)]">关键转折点</strong> — 识别哪些决策改变了谈判走向</span>
+            <span className="text-[var(--accent-cyan)]">🌳</span>
+            <span><strong className="text-[var(--text-primary)]">策略树</strong> — 看清“你的选择 → HR 信念更新 → 收益变化”</span>
           </div>
           <div className="flex items-center gap-2 text-xs">
-            <span className="text-[var(--accent-cyan)]">💡</span>
-            <span><strong className="text-[var(--text-primary)]">个性化建议</strong> — 基于你的简历和谈判行为的改进方案</span>
+            <span className="text-[var(--accent-cyan)]">🎚️</span>
+            <span><strong className="text-[var(--text-primary)]">What-if</strong> — 用滑块探索“如果当时多/少要 5K 会怎样”</span>
           </div>
           <div className="flex items-center gap-2 text-xs">
             <span className="text-[var(--accent-cyan)]">🤖</span>
-            <span><strong className="text-[var(--text-primary)]">AI 复盘助手</strong> — 可以追问任何关于本次谈判的问题</span>
+            <span><strong className="text-[var(--text-primary)]">AI 复盘助手</strong> — 继续追问这次谈判的可改进点</span>
           </div>
         </div>
         <p className="text-[var(--text-tertiary)] text-xs">
-          即使谈判破裂，复盘也能帮你理解：是策略问题、信息不对称，还是市场时机不对？
+          即使谈判破裂，也能转化为下一次真实面试的策略清单。
         </p>
       </div>
     ),
