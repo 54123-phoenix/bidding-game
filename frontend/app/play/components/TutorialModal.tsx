@@ -21,7 +21,7 @@ const PAGES = [
         <div className="grid grid-cols-2 gap-2">
           <div className="rounded-lg border border-[var(--border-hairline)] bg-[var(--bg-elev)] p-3">
             <div className="text-xs font-bold text-[var(--candidate-blue)] mb-1">你 — 候选人</div>
-            <div className="text-[11px] text-[var(--text-tertiary)]">隐藏真实实力，争取最高薪资</div>
+            <div className="text-[11px] text-[var(--text-tertiary)]">选择如何包装真实经历，平衡薪资收益与验证风险</div>
           </div>
           <div className="rounded-lg border border-[var(--border-hairline)] bg-[var(--bg-elev)] p-3">
             <div className="text-xs font-bold text-[var(--hr-purple)] mb-1">HR</div>
@@ -98,7 +98,7 @@ const PAGES = [
           </div>
           <div className="flex items-center gap-2">
             <div className="w-5 h-5 rounded bg-[var(--interviewer-amber-glow)] border border-[var(--interviewer-amber)]/20 flex items-center justify-center text-[10px]">🃏</div>
-            <span className="text-xs"><strong className="text-[var(--text-primary)]">信息战卡牌</strong> — 选择透露、夸大或隐藏简历信息，影响 HR 信任度</span>
+            <span className="text-xs"><strong className="text-[var(--text-primary)]">谈薪筹码卡</strong> — 选择强调、重组或弱化真实经历，影响 HR 信任度</span>
           </div>
         </div>
         <p className="text-[var(--text-tertiary)] text-xs">

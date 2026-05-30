@@ -5,19 +5,23 @@ import { motion, AnimatePresence } from "framer-motion";
 import ResultsGrid from "./ResultsGrid";
 import AgentCard from "./AgentCard";
 import OutcomeResultCard from "./OutcomeResultCard";
+import NegotiationMemo from "./NegotiationMemo";
 import RoundEvidenceTimeline from "./RoundEvidenceTimeline";
 import RoundTimeline from "./RoundTimeline";
+import StrategyTreeLite from "./StrategyTreeLite";
 import EvalBars from "./EvalBars";
 import NarrativeResults from "./NarrativeResults";
 import CredibilityLedger from "./CredibilityLedger";
 import type { EquilibriumView, EvaluationView, FinalResultView, FinalStateView, RoundActionView } from "../hooks/types";
 
-type TabKey = "narrative" | "board" | "timeline" | "eval";
+type TabKey = "memo" | "narrative" | "board" | "timeline" | "tree" | "eval";
 
 const TABS: { key: TabKey; label: string }[] = [
+  { key: "memo", label: "谈判备忘录" },
   { key: "narrative", label: "复盘叙事" },
   { key: "board", label: "博弈面板" },
   { key: "timeline", label: "轮次回放" },
+  { key: "tree", label: "策略树" },
   { key: "eval", label: "评估与均衡" },
 ];
 
@@ -99,7 +103,7 @@ export default function GameResultsView({
   onRestart,
   onHome,
 }: GameResultsViewProps) {
-  const [activeTab, setActiveTab] = useState<TabKey>("narrative");
+  const [activeTab, setActiveTab] = useState<TabKey>("memo");
 
   const outcome = String(finalResult.outcome || "rejected");
   const finalSalary =
@@ -165,6 +169,18 @@ export default function GameResultsView({
 
       {/* Tab Content */}
       <AnimatePresence mode="wait">
+        {activeTab === "memo" && (
+          <motion.div
+            key="memo"
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -8 }}
+            transition={{ duration: 0.25 }}
+          >
+            <NegotiationMemo finalResult={finalResult} equilibrium={equilibrium} actions={actions} />
+          </motion.div>
+        )}
+
         {activeTab === "narrative" && (
           <motion.div
             key="narrative"
@@ -270,6 +286,18 @@ export default function GameResultsView({
               <RoundEvidenceTimeline actions={actions} />
               <RoundTimeline actions={actions} />
             </div>
+          </motion.div>
+        )}
+
+        {activeTab === "tree" && (
+          <motion.div
+            key="tree"
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -8 }}
+            transition={{ duration: 0.25 }}
+          >
+            <StrategyTreeLite actions={actions} equilibrium={equilibrium} />
           </motion.div>
         )}
 

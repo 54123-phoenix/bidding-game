@@ -8,9 +8,9 @@ const ACTION_LABELS: Record<string, string> = {
   wait: "等待",
   evaluate: "评估",
   signal: "市场信号",
-  info_reveal: "信息揭示",
-  info_fake: "信息伪装",
-  info_conceal: "信息隐藏",
+  info_reveal: "筹码强调",
+  info_fake: "叙事重组",
+  info_conceal: "风险弱化",
 };
 
 const ACTION_COLORS: Record<string, string> = {

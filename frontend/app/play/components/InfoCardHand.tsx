@@ -29,19 +29,19 @@ interface InfoCardHandProps {
   makeOffer?: () => void;
 }
 
-type CardIntent = "reveal" | "exaggerate" | "conceal";
+type CardIntent = "emphasize" | "reframe" | "downplay";
 
 const INTENT_META: Record<CardIntent, { emoji: string; label: string; cls: string }> = {
-  reveal: { emoji: "🔍", label: "揭示", cls: "bg-green-50 border-green-200" },
-  exaggerate: { emoji: "✨", label: "夸大", cls: "bg-yellow-50 border-yellow-200" },
-  conceal: { emoji: "🙈", label: "隐藏", cls: "bg-purple-50 border-purple-200" },
+  emphasize: { emoji: "🔍", label: "强调", cls: "bg-green-50 border-green-200" },
+  reframe: { emoji: "✨", label: "重组", cls: "bg-yellow-50 border-yellow-200" },
+  downplay: { emoji: "🧭", label: "弱化", cls: "bg-purple-50 border-purple-200" },
 };
 
 function inferIntent(card: InfoCard): CardIntent {
   const text = `${card.card_type} ${card.description}`.toLowerCase();
-  if (card.verifiability < 0.5 || card.trust_impact < -0.1 || /fake|夸大|offer|竞品|competing/.test(text)) return "exaggerate";
-  if (card.salary_impact <= 0 || /risk|stability|稳定|隐藏|conceal/.test(text)) return "conceal";
-  return "reveal";
+  if (card.verifiability < 0.5 || card.trust_impact < -0.1 || /fake|夸大|offer|竞品|competing/.test(text)) return "reframe";
+  if (card.salary_impact <= 0 || /risk|stability|稳定|隐藏|conceal/.test(text)) return "downplay";
+  return "emphasize";
 }
 
 function trustBadge(value: number) {
@@ -70,8 +70,8 @@ export default function InfoCardHand({
   const playSelected = () => {
     if (!selected || disabled) return;
     const intent = inferIntent(selected);
-    if (intent === "reveal") onReveal(selected.card_id, selected.true_value);
-    else if (intent === "exaggerate") onFake(selected.card_id, fakeInputs[selected.card_id]?.trim() || selected.true_value);
+    if (intent === "emphasize") onReveal(selected.card_id, selected.true_value);
+    else if (intent === "reframe") onFake(selected.card_id, fakeInputs[selected.card_id]?.trim() || selected.true_value);
     else onConceal(selected.card_id);
     setSelectedId(null);
   };
@@ -80,7 +80,7 @@ export default function InfoCardHand({
     <section className="rounded-2xl border border-slate-100 bg-white p-4 text-slate-900 shadow-sm">
       <div className="mb-3 flex items-center justify-between gap-3">
         <div>
-          <div className="text-sm font-black">信息战手牌</div>
+          <div className="text-sm font-black">谈薪筹码卡</div>
           <div className="mt-1 flex items-center gap-2 text-[11px] font-bold text-slate-500">
             <span>HR信任 {Math.round(trust * 100)}%</span>
             <span className="rounded-full bg-slate-50 px-2 py-0.5">{trustLabel}</span>
@@ -117,14 +117,14 @@ export default function InfoCardHand({
               <div className="pt-8">
                 <div className="text-xl">{card.icon}</div>
                 <div className="mt-2 line-clamp-2 text-xs font-black leading-snug text-slate-800">{card.description}</div>
-                <div className="mt-2 text-[10px] font-bold text-slate-500">{meta.label} · 薪资 {card.salary_impact > 0 ? "+" : ""}{card.salary_impact}K</div>
-                {intent === "exaggerate" && !used && selectedCard && (
+                <div className="mt-2 text-[10px] font-bold text-slate-500">{meta.label}包装 · 薪资 {card.salary_impact > 0 ? "+" : ""}{card.salary_impact}K</div>
+                {intent === "reframe" && !used && selectedCard && (
                   <input
                     type="text"
                     value={fakeInputs[card.card_id] || ""}
                     onChange={(e) => setFakeInputs((prev) => ({ ...prev, [card.card_id]: e.target.value }))}
                     onClick={(e) => e.stopPropagation()}
-                    placeholder="夸大说法"
+                    placeholder="重组表达"
                     className="mt-2 w-full rounded-lg border border-yellow-200 bg-white px-2 py-1 text-[10px] outline-none focus:border-[#4F7EFF]"
                   />
                 )}
