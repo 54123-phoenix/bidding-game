@@ -9,12 +9,13 @@ import NegotiationMemo from "./NegotiationMemo";
 import RoundEvidenceTimeline from "./RoundEvidenceTimeline";
 import RoundTimeline from "./RoundTimeline";
 import StrategyTreeLite from "./StrategyTreeLite";
+import WhatIfPanel from "./WhatIfPanel";
 import EvalBars from "./EvalBars";
 import NarrativeResults from "./NarrativeResults";
 import CredibilityLedger from "./CredibilityLedger";
 import type { EquilibriumView, EvaluationView, FinalResultView, FinalStateView, RoundActionView } from "../hooks/types";
 
-type TabKey = "memo" | "narrative" | "board" | "timeline" | "tree" | "eval";
+type TabKey = "memo" | "narrative" | "board" | "timeline" | "tree" | "whatif" | "eval";
 
 const TABS: { key: TabKey; label: string }[] = [
   { key: "memo", label: "谈判备忘录" },
@@ -22,6 +23,7 @@ const TABS: { key: TabKey; label: string }[] = [
   { key: "board", label: "博弈面板" },
   { key: "timeline", label: "轮次回放" },
   { key: "tree", label: "策略树" },
+  { key: "whatif", label: "What-if" },
   { key: "eval", label: "评估与均衡" },
 ];
 
@@ -298,6 +300,18 @@ export default function GameResultsView({
             transition={{ duration: 0.25 }}
           >
             <StrategyTreeLite actions={actions} equilibrium={equilibrium} />
+          </motion.div>
+        )}
+
+        {activeTab === "whatif" && (
+          <motion.div
+            key="whatif"
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -8 }}
+            transition={{ duration: 0.25 }}
+          >
+            <WhatIfPanel finalResult={finalResult} actions={actions} equilibrium={equilibrium} />
           </motion.div>
         )}
 
