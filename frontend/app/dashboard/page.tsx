@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import Link from "next/link";
 import { listGames, type GameSession } from "@/lib/game-api";
+import { getDemoGameSessions, seedDemoHistoryIfEmpty } from "@/lib/demo-history";
 import { Play, Clock, Trophy, XCircle, Minus, TrendingUp, User, Building2, ArrowRight, Loader2, RefreshCw, UserRound } from "lucide-react";
 
 // ── Types ──────────────────────────────────────────────────────────
@@ -388,16 +389,22 @@ export default function DashboardPage() {
     setError(null);
     try {
       const data = await listGames();
-      if (data.status === "ok") {
+      if (data.status === "ok" && data.sessions.length > 0) {
         setSessions(data.sessions);
-        if (data.sessions.length > 0 && !selectedId) {
+        if (!selectedId) {
           setSelectedId(data.sessions[0].session_id);
         }
       } else {
-        setError(data.message || "加载失败");
+        seedDemoHistoryIfEmpty();
+        const demoSessions = getDemoGameSessions();
+        setSessions(demoSessions);
+        if (!selectedId) setSelectedId(demoSessions[0]?.session_id || null);
       }
-    } catch (e) {
-      setError(e instanceof Error ? e.message : "网络错误");
+    } catch {
+      seedDemoHistoryIfEmpty();
+      const demoSessions = getDemoGameSessions();
+      setSessions(demoSessions);
+      if (!selectedId) setSelectedId(demoSessions[0]?.session_id || null);
     } finally {
       setLoading(false);
     }

@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback } from "react";
 import { motion } from "framer-motion";
 import Link from "next/link";
 import { listGames, type GameSession } from "@/lib/game-api";
+import { getDemoGameSessions, seedDemoHistoryIfEmpty } from "@/lib/demo-history";
 import { Clock, Trophy, XCircle, ArrowRight, Play, Loader2 } from "lucide-react";
 
 function statusStyle(status: string) {
@@ -30,11 +31,15 @@ export default function RecentSessions({ onContinue }: RecentSessionsProps) {
   const load = useCallback(async () => {
     try {
       const data = await listGames();
-      if (data.status === "ok") {
+      if (data.status === "ok" && data.sessions.length > 0) {
         setSessions(data.sessions.slice(0, 6));
+      } else {
+        seedDemoHistoryIfEmpty();
+        setSessions(getDemoGameSessions().slice(0, 6));
       }
     } catch {
-      // ignore
+      seedDemoHistoryIfEmpty();
+      setSessions(getDemoGameSessions().slice(0, 6));
     } finally {
       setLoading(false);
     }
