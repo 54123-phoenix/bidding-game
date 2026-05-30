@@ -49,7 +49,7 @@ export function useInfoWar(
         body: JSON.stringify({ session_id: sessionId, action_type: "reveal", card_id: cardId, stated_value: value }),
       });
       const d = await r.json();
-      applyResponse(d, { cardId, actionType: "reveal", label: "如实披露" });
+      applyResponse(d, { cardId, actionType: "reveal", label: "筹码强调" });
     } catch { setInfoNarrative("信息行动提交失败，请检查网络后重试。"); }
   }, [sessionId, applyResponse, setInfoNarrative]);
 
@@ -61,7 +61,7 @@ export function useInfoWar(
         body: JSON.stringify({ session_id: sessionId, action_type: "fake", card_id: cardId, stated_value: fakeValue }),
       });
       const d = await r.json();
-      applyResponse(d, { cardId, actionType: "fake", label: "夸大战果" });
+      applyResponse(d, { cardId, actionType: "fake", label: "叙事重组" });
     } catch { setInfoNarrative("信息行动提交失败，请检查网络后重试。"); }
   }, [sessionId, applyResponse, setInfoNarrative]);
 
@@ -73,7 +73,7 @@ export function useInfoWar(
         body: JSON.stringify({ session_id: sessionId, action_type: "conceal", card_id: cardId }),
       });
       const d = await r.json();
-      applyResponse(d, { cardId, actionType: "conceal", label: "暂不披露" });
+      applyResponse(d, { cardId, actionType: "conceal", label: "风险弱化" });
     } catch { setInfoNarrative("信息行动提交失败，请检查网络后重试。"); }
   }, [sessionId, applyResponse, setInfoNarrative]);
 

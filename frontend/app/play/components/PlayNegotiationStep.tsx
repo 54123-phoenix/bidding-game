@@ -2,13 +2,13 @@
 
 import { motion } from "framer-motion";
 import BattleHUD from "./BattleHUD";
-import AdvisorToast from "./AdvisorToast";
 import HRAvatar from "./HRAvatar";
 import ChatBubblePanel from "./ChatBubble";
 import SalaryTugOfWar from "./SalaryTugOfWar";
 import InfoCardHand from "./InfoCardHand";
 import DeliberationPanel from "./DeliberationPanel";
-import RoundInsightPanel, { type RoundInsight } from "./RoundInsightPanel";
+import type { RoundInsight } from "./RoundInsightPanel";
+import CoachPanel from "./CoachPanel";
 import SituationRail from "./SituationRail";
 import MissionBriefing from "./MissionBriefing";
 import NegotiationActionComposer from "./NegotiationActionComposer";
@@ -88,12 +88,6 @@ export default function PlayNegotiationStep({
         />
       </div>
 
-      <AdvisorToast
-        message={roundInsight?.next_advice || ""}
-        type={roundInsight?.risk_level === "high" ? "danger" : roundInsight?.risk_level === "medium" ? "warning" : "tip"}
-        visible={Boolean(roundInsight?.next_advice)}
-      />
-
       <BattleHUD
         gameState={gameState}
         hrPersona={hrPersona}
@@ -172,6 +166,18 @@ export default function PlayNegotiationStep({
         </div>
 
         <aside className="space-y-4 xl:sticky xl:top-4 xl:self-start">
+          <CoachPanel
+            actions={actions}
+            gameState={gameState}
+            hrPatience={hrPatience}
+            trustState={trustState}
+            roundInsight={roundInsight}
+            infoCards={infoCards}
+            lastInfoPlay={lastInfoPlay}
+            disabled={gameLoading || hrThinking}
+            defaultOpen
+          />
+
           <NegotiationActionComposer
             negotiationMode={negotiationMode}
             setNegotiationMode={setNegotiationMode}
@@ -185,9 +191,8 @@ export default function PlayNegotiationStep({
             setCounterSalary={setCounterSalary}
             currentOffer={gameState?.public_offer ?? null}
             handleAct={handleAct}
+            showHints={false}
           />
-
-          <RoundInsightPanel insight={roundInsight} />
 
           {infoCards.length > 0 && (
               <InfoCardHand

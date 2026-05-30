@@ -20,6 +20,7 @@ interface NegotiationActionComposerProps {
   setCounterSalary: (s: number | null) => void;
   currentOffer: number | null;
   handleAct: (actionType: string, salaryAmount?: number, message?: string) => Promise<void>;
+  showHints?: boolean;
 }
 
 export default function NegotiationActionComposer({
@@ -35,6 +36,7 @@ export default function NegotiationActionComposer({
   setCounterSalary,
   currentOffer,
   handleAct,
+  showHints = true,
 }: NegotiationActionComposerProps) {
   return (
     <div className="space-y-3">
@@ -48,11 +50,13 @@ export default function NegotiationActionComposer({
         </span>
       </div>
 
-      <div className="grid gap-2 rounded-2xl border border-[var(--border-hairline)] bg-[var(--bg-panel)]/70 p-3 lg:grid-cols-3 xl:grid-cols-1">
-        <DecisionHint label="先定锚" value={currentOffer ? `当前 HR 锚点 ${currentOffer}K` : "开局先给合理高位"} />
-        <DecisionHint label="再举证" value="用稀缺技能、竞品机会或业务影响力支撑要价" />
-        <DecisionHint label="控风险" value="接受不是失败，拒绝前先确认总包和职级空间" />
-      </div>
+      {showHints && (
+        <div className="grid gap-2 rounded-2xl border border-[var(--border-hairline)] bg-[var(--bg-panel)]/70 p-3 lg:grid-cols-3 xl:grid-cols-1">
+          <DecisionHint label="先定锚" value={currentOffer ? `当前 HR 锚点 ${currentOffer}K` : "开局先给合理高位"} />
+          <DecisionHint label="再举证" value="用稀缺技能、竞品机会或业务影响力支撑要价" />
+          <DecisionHint label="控风险" value="接受不是失败，拒绝前先确认总包和职级空间" />
+        </div>
+      )}
 
       <div className="overflow-hidden rounded-2xl border border-[var(--border-hairline)] bg-[var(--bg-panel)] shadow-[0_24px_90px_rgba(0,0,0,0.20)]">
         {prompt && !gameLoading && !hrThinking && (
