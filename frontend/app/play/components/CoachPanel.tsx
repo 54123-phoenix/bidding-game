@@ -18,6 +18,11 @@ interface CoachPanelProps {
   defaultOpen?: boolean;
 }
 
+interface HRProfile {
+  label: string;
+  strategy: string;
+}
+
 type Severity = "tip" | "warning" | "danger";
 type Band = "weak" | "medium" | "strong";
 type BottomLine = "loose" | "stable" | "firm";
@@ -28,6 +33,7 @@ interface CoachAdvice {
   verdict: string;
   why: string;
   recommendedMove: string;
+  profile: HRProfile;
   belief: {
     trust: number;
     patience: number;
@@ -100,6 +106,26 @@ function labelCertainty(value: Certainty) {
   return value === "high" ? "高" : value === "medium" ? "中" : "低";
 }
 
+function inferHRProfile({ actions, hrPatience, trust, gameState }: { actions: RoundActionView[]; hrPatience: number; trust: number; gameState: GameStateView | null }): HRProfile {
+  const latestHr = latestBy(actions, "hr");
+  const text = `${latestHr?.action_type || ""} ${latestHr?.reasoning || ""}`.toLowerCase();
+  const competition = gameState?.competition_intensity ?? 0.45;
+
+  if (hasBudgetSignal(latestHr)) {
+    return { label: "预算守门人", strategy: "少争单点现金，改拆总包、职级和评审周期。" };
+  }
+  if (competition >= 0.7 && hrPatience >= 0.45) {
+    return { label: "抢人型 HR", strategy: "用入职确定性换报价上调，给出条件式承诺。" };
+  }
+  if (trust < 0.4 || /风险|risk|验证|背调|稳定/.test(text)) {
+    return { label: "风险规避型 HR", strategy: "先补可验证证据，再提出更高锚点。" };
+  }
+  if (/技术|技能|项目|架构|能力|owner/.test(text)) {
+    return { label: "技术导向型 HR", strategy: "把项目指标、owner 范围和岗位价值绑定。" };
+  }
+  return { label: "均衡谈判型 HR", strategy: "先举证再锚定，保持小步收敛。" };
+}
+
 function buildAdvice({ actions, gameState, hrPatience, trustState, roundInsight, infoCards, lastInfoPlay }: CoachPanelProps): CoachAdvice {
   const trust = trustState?.hr_trust_in_candidate ?? 0.5;
   const lastHr = latestBy(actions, "hr");
@@ -115,6 +141,7 @@ function buildAdvice({ actions, gameState, hrPatience, trustState, roundInsight,
   const playableCards = infoCards.filter((card) => card.reveal_state === "hidden");
   const highCredibilityCard = playableCards.find((card) => card.verifiability >= 0.65 && card.trust_impact >= 0);
   const belief = { trust, patience: hrPatience, externalOptions, bottomLine, acceptanceCertainty };
+  const profile = inferHRProfile({ actions, hrPatience, trust, gameState });
 
   if (actions.length === 0) {
     return {
@@ -122,6 +149,7 @@ function buildAdvice({ actions, gameState, hrPatience, trustState, roundInsight,
       verdict: "开局先建立可信筹码。",
       why: "HR 还没有形成稳定判断。先说明岗位匹配证据，再给合理高位锚点，能避免报价显得突兀。",
       recommendedMove: "先强调一个可验证项目成果，再提出接近岗位上沿但留有让步空间的锚点。",
+      profile,
       belief,
     };
   }
@@ -132,6 +160,7 @@ function buildAdvice({ actions, gameState, hrPatience, trustState, roundInsight,
       verdict: "HR 耐心偏低，转向成交条件。",
       why: "继续拉扯现金会放大破裂风险。此时更适合减少解释，把谈判从单点月薪切到总包和入职条件。",
       recommendedMove: "提出“现金 + 签字费 + 职级评审 + 绩效周期”的组合方案，或确认可接受 offer 的最后条件。",
+      profile,
       belief,
     };
   }
@@ -142,6 +171,7 @@ function buildAdvice({ actions, gameState, hrPatience, trustState, roundInsight,
       verdict: "先修复可信度，再谈上浮。",
       why: "HR 对你的信任偏低。继续强硬报价会被解释为高风险信号，而不是高价值信号。",
       recommendedMove: highCredibilityCard ? "优先打出高可信筹码卡，选择“强调”而不是重组表达。" : "补充可验证项目数据，例如规模、指标、owner 范围，再回到薪资。",
+      profile,
       belief,
     };
   }
@@ -152,6 +182,7 @@ function buildAdvice({ actions, gameState, hrPatience, trustState, roundInsight,
       verdict: "预算口径已出现，拆总包。",
       why: "HR 已经把谈判从价值判断转向审批约束。继续单点加现金，会让对方更容易用预算上限拒绝。",
       recommendedMove: "把诉求拆成现金、签字费、职级、期权/奖金、晋升评审周期，争取总价值而不是只争月薪。",
+      profile,
       belief,
     };
   }
@@ -162,6 +193,7 @@ function buildAdvice({ actions, gameState, hrPatience, trustState, roundInsight,
       verdict: "先补筹码，不要立刻让步。",
       why: `当前报价差约 ${offerGap}K，HR 可能正在测试你的底线。你还有一定信任基础，直接让步会强化“你可被压价”的判断。`,
       recommendedMove: highCredibilityCard ? "先打出一张高可信筹码卡，再给一个小幅收敛的新报价。" : "先补充项目影响力，再把报价收敛到更容易审批的区间。",
+      profile,
       belief,
     };
   }
@@ -172,6 +204,7 @@ function buildAdvice({ actions, gameState, hrPatience, trustState, roundInsight,
       verdict: "市场筹码可用，换取上调。",
       why: "当前外部选择信号较强，HR 更在意你是否会被其他机会截走。用入职确定性换报价上调更有效。",
       recommendedMove: "表达“如果 package 到达目标区间，我可以优先推进/尽快确认”的条件式承诺。",
+      profile,
       belief,
     };
   }
@@ -182,6 +215,7 @@ function buildAdvice({ actions, gameState, hrPatience, trustState, roundInsight,
       verdict: roundInsight.turning_point ? "这是关键转折点。" : "按当前节奏稳步推进。",
       why: roundInsight.hr_interpretation || "系统正在根据 HR 话术、报价变化和信任状态推断局势。",
       recommendedMove: roundInsight.next_advice,
+      profile,
       belief,
     };
   }
@@ -192,6 +226,7 @@ function buildAdvice({ actions, gameState, hrPatience, trustState, roundInsight,
       verdict: "筹码已进入谈判桌。",
       why: lastInfoPlay.narrative,
       recommendedMove: "观察 HR 下一轮报价。如果信任上升，可以提出更清晰的薪资锚点；如果信任下降，先补充验证证据。",
+      profile,
       belief,
     };
   }
@@ -201,6 +236,7 @@ function buildAdvice({ actions, gameState, hrPatience, trustState, roundInsight,
     verdict: "先举证，再锚定。",
     why: "薪资锚点需要被真实项目成果支撑。先建立价值感，再谈数字，能减少 HR 的防御性压价。",
     recommendedMove: "用一句话连接“项目结果 → 岗位价值 → 薪资诉求”，再选择报价或筹码卡。",
+    profile,
     belief,
   };
 }
@@ -225,9 +261,14 @@ export default function CoachPanel(props: CoachPanelProps) {
           className="flex w-full items-start justify-between gap-3 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-cyan)]/50"
           aria-expanded={open}
         >
-          <div>
+          <div className="min-w-0">
             <div className="text-[10px] font-black uppercase tracking-[0.24em] text-[var(--accent-cyan)]">Coach Mode</div>
             <h3 className="mt-1 text-base font-black text-[var(--text-primary)]">{advice.verdict}</h3>
+            {!open && (
+              <p className="mt-1 line-clamp-2 text-[11px] leading-relaxed text-[var(--text-tertiary)]">
+                {advice.recommendedMove}
+              </p>
+            )}
           </div>
           <div className="flex shrink-0 items-center gap-2">
             <span className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[10px] font-black ${meta.cls}`}>
@@ -247,6 +288,16 @@ export default function CoachPanel(props: CoachPanelProps) {
               exit={{ height: 0, opacity: 0 }}
               transition={{ duration: 0.24 }}
             >
+              <div className="rounded-2xl border border-[var(--hr-purple)]/15 bg-[var(--hr-purple-glow)] px-4 py-3">
+                <div className="flex items-center justify-between gap-3">
+                  <div>
+                    <div className="text-[10px] font-black text-[var(--hr-purple)]">你面对的 HR 画像</div>
+                    <div className="mt-1 text-sm font-black text-[var(--text-primary)]">{advice.profile.label}</div>
+                  </div>
+                  <span className="rounded-full border border-[var(--hr-purple)]/20 px-2 py-1 text-[10px] font-black text-[var(--hr-purple)]">应对策略</span>
+                </div>
+                <p className="mt-2 text-xs leading-relaxed text-[var(--text-secondary)]">{advice.profile.strategy}</p>
+              </div>
               <CoachBlock label="为什么" value={advice.why} tone="purple" />
               <CoachBlock label="推荐动作" value={advice.recommendedMove} tone="cyan" />
               <div className="grid grid-cols-2 gap-2">
