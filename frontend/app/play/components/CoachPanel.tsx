@@ -301,11 +301,32 @@ export default function CoachPanel(props: CoachPanelProps) {
               <CoachBlock label="为什么" value={advice.why} tone="purple" />
               <CoachBlock label="推荐动作" value={advice.recommendedMove} tone="cyan" />
               <div className="grid grid-cols-2 gap-2">
-                <BeliefMetric label="信任" value={`${Math.round(advice.belief.trust * 100)}%`} />
-                <BeliefMetric label="耐心" value={`${Math.round(advice.belief.patience * 100)}%`} />
-                <BeliefMetric label="外部选择" value={labelBand(advice.belief.externalOptions)} />
-                <BeliefMetric label="底线强度" value={labelBottomLine(advice.belief.bottomLine)} />
-                <BeliefMetric label="入职确定性" value={labelCertainty(advice.belief.acceptanceCertainty)} wide />
+                <BeliefMetric
+                  label="信任"
+                  value={`${Math.round(advice.belief.trust * 100)}%`}
+                  explanation="来自筹码可信度、回应一致性和 HR 验证结果。"
+                />
+                <BeliefMetric
+                  label="耐心"
+                  value={`${Math.round(advice.belief.patience * 100)}%`}
+                  explanation="耐心越低，继续拉扯现金越容易破裂。"
+                />
+                <BeliefMetric
+                  label="外部选择"
+                  value={labelBand(advice.belief.externalOptions)}
+                  explanation="市场热度越强，HR 越担心你被其他机会截走。"
+                />
+                <BeliefMetric
+                  label="底线强度"
+                  value={labelBottomLine(advice.belief.bottomLine)}
+                  explanation="报价让步越小，HR 越会判断你底线强。"
+                />
+                <BeliefMetric
+                  label="入职确定性"
+                  value={labelCertainty(advice.belief.acceptanceCertainty)}
+                  explanation="成交条件越明确，HR 越愿意用上调换确定性。"
+                  wide
+                />
               </div>
             </motion.div>
           )}
@@ -324,11 +345,12 @@ function CoachBlock({ label, value, tone }: { label: string; value: string; tone
   );
 }
 
-function BeliefMetric({ label, value, wide = false }: { label: string; value: string; wide?: boolean }) {
+function BeliefMetric({ label, value, explanation, wide = false }: { label: string; value: string; explanation: string; wide?: boolean }) {
   return (
     <div className={wide ? "col-span-2 rounded-xl border border-[var(--border-hairline)] bg-[var(--bg-elev)]/55 px-3 py-2 text-center" : "rounded-xl border border-[var(--border-hairline)] bg-[var(--bg-elev)]/55 px-3 py-2 text-center"}>
       <div className="text-[9px] uppercase tracking-[0.16em] text-[var(--text-tertiary)]">{label}</div>
       <div className="mt-1 text-sm font-black text-[var(--text-primary)]">{value}</div>
+      <div className="mt-1 text-[9px] leading-relaxed text-[var(--text-tertiary)]">{explanation}</div>
     </div>
   );
 }
