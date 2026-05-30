@@ -323,9 +323,11 @@ function PlayContent() {
               setNegotiationMode={setNegotiationMode}
               resumeData={resumeData}
               jobData={jobData}
-              gameState={gameState}
-              gameRound={gameRound}
-              hrPersona={hrPersona}
+               gameState={gameState}
+               gameRound={gameRound}
+               strategy={strategy}
+               market={market}
+               hrPersona={hrPersona}
               hrPatience={hrPatience}
               hrThinking={hrThinking}
               gameLoading={gameLoading}
@@ -353,8 +355,12 @@ function PlayContent() {
 
           {step === 3 && finalResult && (
             <PlayResultsStep
-              finalResult={finalResult}
-              outcomeMessage={outcomeMessage}
+               finalResult={finalResult}
+               resumeData={resumeData}
+               jobData={jobData}
+               strategy={strategy}
+               market={market}
+               outcomeMessage={outcomeMessage}
               equilibrium={equilibrium}
               hrPersona={hrPersonaView}
               onChat={(msg) => handleChat(msg)}

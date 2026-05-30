@@ -1,8 +1,5 @@
 "use client";
 
-import { useMemo } from "react";
-import { motion, AnimatePresence } from "framer-motion";
-
 interface RoundAction {
   player: string;
   action_type: string;
@@ -12,394 +9,135 @@ interface RoundAction {
 }
 
 interface SalaryTugOfWarProps {
-  actions: RoundAction[];
-  currentOffer: number | null;
+  actions?: RoundAction[];
+  currentOffer?: number | null;
   salaryRange?: [number, number] | null;
   reservationWage?: number;
+  candidateOffer?: number | null;
+  hrOffer?: number | null;
+  marketMin?: number;
+  marketMax?: number;
+  marketMedian?: number;
 }
 
-interface RoundPair {
-  round: number;
-  candidateSalary: number | null;
-  hrSalary: number | null;
+function salaryFrom(action: RoundAction) {
+  const value = action.params?.salary_offer ?? action.params?.salary_ask ?? action.params?.salary_amount ?? action.params?.accepted_salary;
+  return typeof value === "number" ? value : null;
 }
 
-function extractPairs(
-  actions: RoundAction[],
-  currentOffer: number | null
-): { pairs: RoundPair[]; domain: [number, number] } {
-  const byRound = new Map<number, { candidate: number | null; hr: number | null }>();
-  const allSalaries: number[] = [];
-
-  for (const a of actions) {
-    const amt =
-      (a.params?.salary_offer as number) ??
-      (a.params?.salary_ask as number) ??
-      (a.params?.salary_amount as number) ??
-      null;
-    if (amt === null || amt === undefined) continue;
-    allSalaries.push(amt);
-
-    if (!byRound.has(a.round)) {
-      byRound.set(a.round, { candidate: null, hr: null });
-    }
-    const slot = byRound.get(a.round)!;
-    if (a.player === "candidate") slot.candidate = amt;
-    if (a.player === "hr") slot.hr = amt;
+function deriveOffers(actions: RoundAction[] = [], currentOffer?: number | null) {
+  let candidate: number | null = null;
+  let hr: number | null = currentOffer ?? null;
+  for (const action of actions) {
+    const salary = salaryFrom(action);
+    if (salary === null) continue;
+    if (action.player === "candidate") candidate = salary;
+    if (action.player === "hr") hr = salary;
   }
-
-  if (currentOffer) allSalaries.push(currentOffer);
-
-  const pairs: RoundPair[] = Array.from(byRound.entries())
-    .sort(([a], [b]) => a - b)
-    .map(([round, data]) => ({
-      round,
-      candidateSalary: data.candidate,
-      hrSalary: data.hr,
-    }));
-
-  if (
-    currentOffer &&
-    pairs.length > 0 &&
-    pairs[pairs.length - 1].hrSalary !== currentOffer
-  ) {
-    pairs.push({
-      round: pairs[pairs.length - 1].round,
-      candidateSalary: null,
-      hrSalary: currentOffer,
-    });
-  }
-
-  const min = Math.min(...allSalaries, 30);
-  const max = Math.max(...allSalaries, 100);
-  const pad = Math.max(Math.round((max - min) * 0.15), 10);
-  const domain: [number, number] = [Math.max(0, min - pad), max + pad];
-
-  return { pairs, domain };
+  return { candidate, hr };
 }
 
-function pct(value: number, [lo, hi]: [number, number]): number {
-  if (hi <= lo) return 50;
-  return ((value - lo) / (hi - lo)) * 100;
+function pct(value: number, min: number, max: number) {
+  if (max <= min) return 50;
+  return Math.max(0, Math.min(100, ((value - min) / (max - min)) * 100));
 }
 
 export default function SalaryTugOfWar({
-  actions,
-  currentOffer,
+  actions = [],
+  currentOffer = null,
   salaryRange,
-  reservationWage = 0,
+  candidateOffer,
+  hrOffer,
+  marketMin,
+  marketMax,
+  marketMedian,
 }: SalaryTugOfWarProps) {
-  const { pairs, domain } = useMemo(
-    () => extractPairs(actions, currentOffer),
-    [actions, currentOffer]
-  );
+  const derived = deriveOffers(actions, currentOffer);
+  const candidate = candidateOffer ?? derived.candidate;
+  const hr = hrOffer ?? derived.hr;
+  const rangeMin = marketMin ?? salaryRange?.[0] ?? Math.min(candidate ?? 45, hr ?? 45, 30);
+  const rangeMax = marketMax ?? salaryRange?.[1] ?? Math.max(candidate ?? 70, hr ?? 70, 100);
+  const median = marketMedian ?? Math.round((rangeMin + rangeMax) / 2);
 
-  if (pairs.length < 1) return null;
+  if (candidate === null && hr === null) return null;
 
-  const last = pairs[pairs.length - 1];
-  const gap =
-    last.candidateSalary && last.hrSalary
-      ? Math.abs(last.candidateSalary - last.hrSalary)
-      : null;
-  const isConverging = gap !== null && gap <= 5;
-  const isAgreed = gap === 0;
-
-  const axisMin = salaryRange ? Math.min(domain[0], salaryRange[0]) : domain[0];
-  const axisMax = salaryRange ? Math.max(domain[1], salaryRange[1]) : domain[1];
-  const axis: [number, number] = [axisMin, axisMax];
+  const candidateValue = candidate ?? median;
+  const hrValue = hr ?? median;
+  const candidatePct = pct(candidateValue, rangeMin, rangeMax);
+  const hrPct = pct(hrValue, rangeMin, rangeMax);
+  const marketPct = pct(median, rangeMin, rangeMax);
+  const left = Math.min(candidatePct, hrPct);
+  const width = Math.abs(candidatePct - hrPct);
+  const agreed = candidate !== null && hr !== null && candidate === hr;
 
   return (
-    <motion.div
-      className="surface-focus overflow-hidden rounded-3xl"
-      initial={{ opacity: 0, y: 10 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.5 }}
-    >
-      <div className="absolute inset-0 bg-gradient-to-b from-[var(--candidate-blue-glow)] via-transparent to-[var(--hr-purple-glow)] opacity-20" />
-
-      <div className="relative z-10 px-5 py-4">
-        <div className="mb-5 flex items-center justify-between gap-4">
-          <div className="flex items-center gap-2.5">
-            <div className="flex h-7 w-7 items-center justify-center rounded-lg border border-[var(--accent-ali)]/25 bg-[var(--accent-ali-glow)] shadow-[0_0_18px_rgba(255,106,0,0.12)]">
-              <span className="text-[11px]">⚔️</span>
-            </div>
-            <span className="text-xs font-bold text-[var(--text-primary)] tracking-wide">
-              薪资拉锯战场
-            </span>
-            {gap !== null && gap > 0 && !isConverging && (
-              <motion.span
-                className="text-[10px] text-amber-400 bg-amber-500/10 rounded-full px-2.5 py-0.5 border border-amber-500/20 font-mono"
-                animate={{ opacity: [1, 0.6, 1] }}
-                transition={{ duration: 2, repeat: Infinity }}
-              >
-                差距 {gap}K
-              </motion.span>
-            )}
-            {isConverging && !isAgreed && (
-              <motion.span
-                className="text-[10px] text-[var(--accent-cyan)] bg-[var(--accent-cyan-glow)] rounded-full px-2.5 py-0.5 border border-[var(--accent-cyan)]/20 font-mono"
-                animate={{ scale: [1, 1.05, 1] }}
-                transition={{ duration: 1.5, repeat: Infinity }}
-              >
-                即将达成！仅差 {gap}K
-              </motion.span>
-            )}
-            {isAgreed && (
-              <motion.span
-                className="text-[10px] text-[var(--state-success)] bg-[var(--accent-green-glow)] rounded-full px-2.5 py-0.5 border border-[var(--accent-green)]/20 font-bold"
-                initial={{ scale: 0 }}
-                animate={{ scale: 1 }}
-                transition={{ type: "spring", stiffness: 400 }}
-              >
-                ✓ 达成一致
-              </motion.span>
-            )}
-          </div>
-          <div className="hidden items-center gap-2 md:flex">
-            <span className="ai-chip rounded-full px-2 py-0.5 text-[9px] font-bold">报价路径追踪</span>
-            <span className="strategy-chip rounded-full px-2 py-0.5 text-[9px] font-bold">成交张力</span>
-          </div>
-          <div className="flex items-center gap-4 text-[10px]">
-            <span className="flex items-center gap-1.5">
-              <span className="w-2.5 h-2.5 rounded-full bg-[var(--candidate-blue)] shadow-[0_0_6px_var(--candidate-blue-glow)]" />
-              <span className="text-[var(--text-tertiary)]">你的要价</span>
-            </span>
-            <span className="flex items-center gap-1.5">
-              <span className="w-2.5 h-2.5 rotate-45 bg-[var(--hr-purple)] shadow-[0_0_6px_var(--hr-purple-glow)]" />
-              <span className="text-[var(--text-tertiary)]">HR 报价</span>
-            </span>
-          </div>
+    <section className="cyber-glass relative overflow-hidden rounded-3xl p-5 text-white">
+      <div className="absolute inset-0 bg-[radial-gradient(circle_at_20%_0%,rgba(255,106,0,0.16),transparent_32%),radial-gradient(circle_at_80%_100%,rgba(0,224,255,0.14),transparent_34%)]" />
+      <div className="absolute inset-0 quiet-grid opacity-30" />
+      <svg className="pointer-events-none absolute right-4 top-3 h-20 w-36 opacity-40" viewBox="0 0 200 120" fill="none" aria-hidden="true">
+        <path d="M40 60 Q100 30 160 60" stroke="url(#tugCurve)" strokeWidth="12" strokeLinecap="round" className="math-curve" />
+        <circle cx="40" cy="60" r="18" fill="#FF6A00" opacity="0.88" />
+        <circle cx="160" cy="60" r="18" fill="#00E0FF" opacity="0.88" />
+        <defs>
+          <linearGradient id="tugCurve" x1="40" x2="160" y1="60" y2="60" gradientUnits="userSpaceOnUse">
+            <stop stopColor="#FF6A00" />
+            <stop offset="0.55" stopColor="#FACC15" />
+            <stop offset="1" stopColor="#00E0FF" />
+          </linearGradient>
+        </defs>
+      </svg>
+      <div className="relative z-10 mb-5 flex flex-wrap items-center justify-between gap-3">
+        <div>
+          <h3 className="text-sm font-black">薪资拉锯</h3>
+          <p className="text-[11px] font-semibold text-slate-400">市场区间 {rangeMin}K - {rangeMax}K</p>
         </div>
-
-        <div className="relative h-24">
-          <div className="absolute inset-x-0 top-0 flex justify-between px-0.5">
-            {[0, 25, 50, 75, 100].map((pctTick) => {
-              const val = Math.round(axis[0] + (axis[1] - axis[0]) * (pctTick / 100));
-              return (
-                <span
-                  key={pctTick}
-                  className="text-[9px] text-[var(--text-tertiary)] tabular-nums font-mono"
-                >
-                  {val}K
-                </span>
-              );
-            })}
-          </div>
-
-          <div className="absolute top-8 inset-x-0 h-10">
-            <div className="absolute inset-0 bg-[var(--bg-elev)] rounded-full border border-[var(--border-hairline)]" />
-
-            {salaryRange && (
-              <motion.div
-                className="absolute top-0 bottom-0 rounded-full"
-                style={{
-                  left: `${pct(salaryRange[0], axis)}%`,
-                  right: `${100 - pct(salaryRange[1], axis)}%`,
-                  background: "linear-gradient(90deg, #34d39915, #34d39925, #34d39915)",
-                  boxShadow: "0 0 8px #34d39910",
-                }}
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                transition={{ delay: 0.3 }}
-              />
-            )}
-
-            {reservationWage > 0 && (
-              <div
-                className="absolute top-0 bottom-0 w-px z-10"
-                style={{
-                  left: `${pct(reservationWage, axis)}%`,
-                  background: "linear-gradient(to bottom, transparent, #fb7185, transparent)",
-                }}
-              >
-                <div className="absolute -top-3 left-1/2 -translate-x-1/2 text-[8px] text-red-400/80 whitespace-nowrap font-bold">
-                  底线 {reservationWage}K
-                </div>
-              </div>
-            )}
-          </div>
-
-          <AnimatePresence>
-            {pairs.map((pair, i) => {
-              const isLast = i === pairs.length - 1;
-              const candPct = pair.candidateSalary ? pct(pair.candidateSalary, axis) : null;
-              const hrPct = pair.hrSalary ? pct(pair.hrSalary, axis) : null;
-
-              return (
-                <div key={`${pair.round}-${i}`}>
-                  {candPct !== null && hrPct !== null && (
-                    <motion.div
-                      className="absolute top-8 h-10"
-                      initial={{ opacity: 0 }}
-                      animate={{ opacity: 1 }}
-                      transition={{ delay: 0.2 }}
-                      style={{
-                        left: `${Math.min(candPct, hrPct)}%`,
-                        width: `${Math.abs(candPct - hrPct)}%`,
-                      }}
-                    >
-                      <div
-                        className={`absolute inset-y-0 rounded-full transition-colors duration-500 ${
-                          isLast
-                            ? isConverging
-                              ? "bg-gradient-to-r from-[var(--candidate-blue)]/20 via-[var(--accent-cyan)]/15 to-[var(--hr-purple)]/20"
-                              : "bg-gradient-to-r from-[var(--candidate-blue)]/15 to-[var(--hr-purple)]/15"
-                            : "bg-[var(--bg-elev)]/30"
-                        }`}
-                      />
-                      {isLast && gap !== null && gap > 0 && (
-                        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2">
-                          <motion.span
-                            className="text-[9px] font-mono font-bold px-2 py-0.5 rounded-full whitespace-nowrap border"
-                            style={{
-                              color: isConverging ? "var(--accent-cyan)" : "var(--state-warning)",
-                              backgroundColor: isConverging ? "var(--accent-cyan-glow)" : "#fbbf2415",
-                              borderColor: isConverging ? "var(--accent-cyan)33" : "#fbbf2433",
-                            }}
-                            initial={{ scale: 1.3, opacity: 0 }}
-                            animate={{ scale: 1, opacity: 1 }}
-                            transition={{ delay: 0.5, type: "spring" }}
-                          >
-                            {gap}K
-                          </motion.span>
-                        </div>
-                      )}
-                    </motion.div>
-                  )}
-
-                  {candPct !== null && (
-                    <motion.div
-                      className="absolute flex flex-col items-center"
-                      initial={{ opacity: 0, y: 10, scale: 0.5 }}
-                      animate={{ opacity: 1, y: 0, scale: 1 }}
-                      transition={{ delay: i * 0.08, type: "spring", stiffness: 300 }}
-                      style={{
-                        left: `${candPct}%`,
-                        top: "4px",
-                        transform: "translateX(-50%)",
-                        zIndex: isLast ? 20 : 5,
-                      }}
-                    >
-                      <motion.div
-                        className="rounded-full border-2"
-                        style={{
-                          width: isLast ? 14 : 10,
-                          height: isLast ? 14 : 10,
-                          backgroundColor: isLast ? "var(--candidate-blue)" : "var(--candidate-blue)99",
-                          borderColor: isLast ? "var(--candidate-blue)" : "var(--candidate-blue)66",
-                          boxShadow: isLast ? "0 0 12px var(--candidate-blue-glow), 0 0 24px var(--candidate-blue-glow)" : "none",
-                        }}
-                        animate={
-                          isLast
-                            ? { scale: [1, 1.25, 1], opacity: [1, 0.82, 1] }
-                            : {}
-                        }
-                        transition={isLast ? { duration: 2, repeat: Infinity } : {}}
-                      />
-                      {isLast && pair.candidateSalary && (
-                        <motion.span
-                          className="text-[10px] font-mono font-bold tabular-nums whitespace-nowrap mt-1 px-1.5 py-0.5 rounded"
-                          style={{
-                            color: "var(--candidate-blue)",
-                            backgroundColor: "var(--candidate-blue-glow)",
-                          }}
-                          initial={{ opacity: 0, y: 5 }}
-                          animate={{ opacity: 1, y: 0 }}
-                          transition={{ delay: 0.3 }}
-                        >
-                          {pair.candidateSalary}K
-                        </motion.span>
-                      )}
-                    </motion.div>
-                  )}
-
-                  {hrPct !== null && (
-                    <motion.div
-                      className="absolute flex flex-col items-center"
-                      initial={{ opacity: 0, y: -10, scale: 0.5 }}
-                      animate={{ opacity: 1, y: 0, scale: 1 }}
-                      transition={{ delay: i * 0.08 + 0.04, type: "spring", stiffness: 300 }}
-                      style={{
-                        left: `${hrPct}%`,
-                        top: "32px",
-                        transform: "translateX(-50%)",
-                        zIndex: isLast ? 20 : 5,
-                      }}
-                    >
-                      <motion.div
-                        className="rotate-45 border-2"
-                        style={{
-                          width: isLast ? 14 : 10,
-                          height: isLast ? 14 : 10,
-                          backgroundColor: isLast ? "var(--hr-purple)" : "var(--hr-purple)99",
-                          borderColor: isLast ? "var(--hr-purple)" : "var(--hr-purple)66",
-                          boxShadow: isLast ? "0 0 12px var(--hr-purple-glow), 0 0 24px var(--hr-purple-glow)" : "none",
-                        }}
-                        animate={
-                          isLast
-                            ? { rotate: [45, 55, 45], opacity: [1, 0.82, 1] }
-                            : {}
-                        }
-                        transition={isLast ? { duration: 2, repeat: Infinity } : {}}
-                      />
-                      {isLast && pair.hrSalary && (
-                        <motion.span
-                          className="text-[10px] font-mono font-bold tabular-nums whitespace-nowrap mt-0.5 px-1.5 py-0.5 rounded"
-                          style={{
-                            color: "var(--hr-purple)",
-                            backgroundColor: "var(--hr-purple-glow)",
-                          }}
-                          initial={{ opacity: 0, y: -5 }}
-                          animate={{ opacity: 1, y: 0 }}
-                          transition={{ delay: 0.3 }}
-                        >
-                          {pair.hrSalary}K
-                        </motion.span>
-                      )}
-                    </motion.div>
-                  )}
-                </div>
-              );
-            })}
-          </AnimatePresence>
-        </div>
-
-        <div className="relative h-4 mt-1">
-          {pairs.map((pair, i) => {
-            const candPct = pair.candidateSalary ? pct(pair.candidateSalary, axis) : null;
-            const hrPct = pair.hrSalary ? pct(pair.hrSalary, axis) : null;
-            const mid =
-              candPct !== null && hrPct !== null
-                ? (candPct + hrPct) / 2
-                : candPct ?? hrPct ?? 50;
-
-            return (
-              <motion.span
-                key={`label-${i}`}
-                className="absolute text-[8px] text-[var(--text-tertiary)] tabular-nums font-mono"
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                transition={{ delay: i * 0.08 }}
-                style={{
-                  left: `${mid}%`,
-                  transform: "translateX(-50%)",
-                }}
-              >
-                R{pair.round + 1}
-              </motion.span>
-            );
-          })}
-        </div>
-
-        {salaryRange && (
-          <div className="mt-2 pt-2 border-t border-[var(--border-hairline)] flex items-center gap-3 text-[9px] text-[var(--text-tertiary)]">
-            <span className="flex items-center gap-1">
-              <span className="w-2 h-1 rounded-full bg-[var(--market-emerald)]/30" />
-              岗位薪资带：{salaryRange[0]}K – {salaryRange[1]}K
-            </span>
-          </div>
-        )}
+        {agreed && <span className="rounded-full border border-emerald-300/30 bg-emerald-400/10 px-3 py-1 text-xs font-black text-emerald-300 shadow-[0_0_18px_rgba(52,211,153,0.18)]">✅ 达成一致</span>}
       </div>
-    </motion.div>
+
+      <div className="relative z-10 h-20">
+        <div className="absolute left-0 right-0 top-8 h-3 rounded-full border border-white/10 bg-white/10">
+          <div
+            className="absolute top-0 h-3 rounded-full bg-gradient-to-r from-[#FF6A00] via-[#FACC15] to-[#00E0FF] shadow-[0_0_24px_rgba(0,224,255,0.22)] transition-all duration-[400ms] ease-out"
+            style={{ left: `${left}%`, width: `${Math.max(width, agreed ? 2 : 4)}%` }}
+          />
+        </div>
+
+        <Anchor label="市场" value={median} pct={marketPct} color="#94A3B8" small />
+        <Anchor label="HR" value={hrValue} pct={hrPct} color="#00E0FF" />
+        <Anchor label="我" value={candidateValue} pct={candidatePct} color="#FF6A00" />
+      </div>
+
+      <div className="relative z-10 grid grid-cols-3 gap-2">
+        <ValueBox label="HR出价" value={hr} color="#00E0FF" />
+        <ValueBox label="市场中位" value={median} color="#64748B" />
+        <ValueBox label="我的出价" value={candidate} color="#FF6A00" />
+      </div>
+    </section>
+  );
+}
+
+function Anchor({ label, value, pct: position, color, small = false }: { label: string; value: number; pct: number; color: string; small?: boolean }) {
+  return (
+    <div
+      className="absolute top-5 flex -translate-x-1/2 flex-col items-center transition-all duration-[400ms] ease-out"
+      style={{ left: `${position}%` }}
+    >
+      <div
+        className={small ? "flex h-7 w-7 items-center justify-center rounded-full border-2 bg-black text-[9px] font-black shadow-[0_0_14px_rgba(255,255,255,0.08)]" : "flex h-10 w-10 items-center justify-center rounded-full border-4 bg-black text-xs font-black shadow-[0_0_18px_currentColor]"}
+        style={{ borderColor: color, color }}
+      >
+        {label}
+      </div>
+      <span className="mt-1 rounded-full border border-white/10 bg-black/70 px-1.5 text-[10px] font-black shadow-sm" style={{ color }}>{value}K</span>
+    </div>
+  );
+}
+
+function ValueBox({ label, value, color }: { label: string; value: number | null; color: string }) {
+  return (
+    <div className="rounded-xl border border-white/10 bg-white/[0.06] px-3 py-2 text-center backdrop-blur-sm">
+      <div className="text-[10px] font-bold text-slate-400">{label}</div>
+      <div className="mt-1 text-lg font-black tabular-nums transition-all duration-[400ms]" style={{ color }}>{value === null ? "--" : `${value}K`}</div>
+    </div>
   );
 }

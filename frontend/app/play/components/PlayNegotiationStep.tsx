@@ -1,7 +1,8 @@
 "use client";
 
 import { motion } from "framer-motion";
-import GameHUD from "./GameHUD";
+import BattleHUD from "./BattleHUD";
+import AdvisorToast from "./AdvisorToast";
 import HRAvatar from "./HRAvatar";
 import ChatBubblePanel from "./ChatBubble";
 import SalaryTugOfWar from "./SalaryTugOfWar";
@@ -11,6 +12,7 @@ import RoundInsightPanel, { type RoundInsight } from "./RoundInsightPanel";
 import SituationRail from "./SituationRail";
 import MissionBriefing from "./MissionBriefing";
 import NegotiationActionComposer from "./NegotiationActionComposer";
+import ParallelUniversePanel from "./ParallelUniversePanel";
 import type { InfoPlayFeedback } from "../hooks/useInfoWar";
 import type {
   DeliberationView,
@@ -33,6 +35,8 @@ interface PlayNegotiationStepProps {
   jobData: JobView | null;
   gameState: GameStateView | null;
   gameRound: number;
+  strategy: string;
+  market: string;
   hrPersona: HRPersonaView | null;
   hrPatience: number;
   hrThinking: boolean;
@@ -61,7 +65,7 @@ interface PlayNegotiationStepProps {
 export default function PlayNegotiationStep({
   negotiationMode, setNegotiationMode,
   resumeData, jobData, gameState,
-  gameRound, hrPersona, hrPatience, hrThinking, gameLoading,
+  gameRound, strategy, market, hrPersona, hrPatience, hrThinking, gameLoading,
   actions, infoCards, trustState, infoNarrative, lastInfoPlay, roundInsight,
   streamingText, streamingPhase, prompt, options,
   hrDeliberation,
@@ -84,17 +88,21 @@ export default function PlayNegotiationStep({
         />
       </div>
 
-      <GameHUD
-        publicOffer={gameState?.public_offer ?? null}
+      <AdvisorToast
+        message={roundInsight?.next_advice || ""}
+        type={roundInsight?.risk_level === "high" ? "danger" : roundInsight?.risk_level === "medium" ? "warning" : "tip"}
+        visible={Boolean(roundInsight?.next_advice)}
+      />
+
+      <BattleHUD
+        gameState={gameState}
+        hrPersona={hrPersona}
         hrPatience={hrPatience}
-        marketAdjustment={gameState?.market_adjustment ?? 1}
-        competitionIntensity={gameState?.competition_intensity ?? 0.5}
-        interviewerRec={gameState?.interviewer_recommendation || "待评估"}
-        overallScore={gameState?.scores?.overall || 0.5}
+        trustState={trustState}
         round={gameRound}
         maxRounds={gameState?.max_rounds || 5}
-        candidateReservationWage={gameState?.candidate_reservation_wage ?? null}
-        hrPersona={hrPersona}
+        phase={streamingPhase === "analyze" ? "分析局势" : streamingPhase === "decide" ? "决策中" : hrThinking ? "HR思考" : "你的回合"}
+        candidateName={resumeData?.name ? String(resumeData.name) : "候选人"}
       />
 
       <div className="grid gap-4 xl:grid-cols-[240px_minmax(560px,1fr)_320px]">
@@ -182,17 +190,28 @@ export default function PlayNegotiationStep({
           <RoundInsightPanel insight={roundInsight} />
 
           {infoCards.length > 0 && (
-            <InfoCardHand
+              <InfoCardHand
               cards={infoCards}
               trust={trustState?.hr_trust_in_candidate ?? 0.5}
               trustLabel={trustState?.trust_label ?? "谨慎信任"}
               onReveal={handleInfoReveal}
               onFake={handleInfoFake}
-              onConceal={handleInfoConceal}
-              lastPlay={lastInfoPlay}
-              disabled={gameLoading || hrThinking}
-            />
+                onConceal={handleInfoConceal}
+                lastPlay={lastInfoPlay}
+                disabled={gameLoading || hrThinking}
+                makeOffer={() => {
+                  setShowCounterInput(true);
+                  setCounterSalary((gameState?.public_offer || 30) + 5);
+                }}
+              />
           )}
+
+          <ParallelUniversePanel
+            resumeData={resumeData}
+            jobData={jobData}
+            strategy={strategy}
+            marketCondition={market}
+          />
 
           {infoNarrative && (
             <motion.div

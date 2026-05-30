@@ -2,12 +2,16 @@
 
 import { motion } from "framer-motion";
 import GameResultsView from "./GameResultsView";
-import ParallelUniverses from "./ParallelUniverses";
+import ParallelUniversePanel from "./ParallelUniversePanel";
 import { VISUAL_ASSETS } from "@/lib/visual-assets";
-import type { EquilibriumView, FinalResultView } from "../hooks/types";
+import type { EquilibriumView, FinalResultView, JobView, ResumeView } from "../hooks/types";
 
 interface PlayResultsStepProps {
   finalResult: FinalResultView;
+  resumeData: ResumeView | null;
+  jobData: JobView | null;
+  strategy: string;
+  market: string;
   outcomeMessage: string;
   equilibrium: EquilibriumView | null;
   hrPersona?: { name: string; tagline: string };
@@ -18,6 +22,10 @@ interface PlayResultsStepProps {
 
 export default function PlayResultsStep({
   finalResult,
+  resumeData,
+  jobData,
+  strategy,
+  market,
   outcomeMessage,
   equilibrium,
   hrPersona,
@@ -39,12 +47,13 @@ export default function PlayResultsStep({
         onHome={onHome}
       />
 
-      {finalResult.parallel_universes?.base_universe ? (
-        <ParallelUniverses
-          baseUniverse={finalResult.parallel_universes.base_universe}
-          alternatives={finalResult.parallel_universes?.alternative_universes || []}
-          comparisonSummary={finalResult.parallel_universes?.comparison_summary || ""}
-          keyInsight={finalResult.parallel_universes?.key_insight || ""}
+      {resumeData && jobData ? (
+        <ParallelUniversePanel
+          resumeData={resumeData}
+          jobData={jobData}
+          strategy={strategy}
+          marketCondition={market}
+          finalResult={finalResult}
         />
       ) : (
         <motion.section
