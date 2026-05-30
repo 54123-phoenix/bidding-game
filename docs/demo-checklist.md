@@ -160,6 +160,19 @@ If live negotiation fails:
 2. Switch to demo history.
 3. Continue with result-page coaching features.
 
+## Judge Questions
+
+Prepared answers are in `docs/judges-faq.md`.
+
+Use it for questions about:
+
+- Whether Bayesian belief updates are strict statistical inference.
+- How the system handles LLM hallucination or missing API keys.
+- Whether What-if is a strict equilibrium recomputation.
+- Why chip cards are not encouraging deception.
+- Why the project does not scrape live recruiting websites.
+- How this differs from a generic LLM chat assistant.
+
 ## Final Verification Commands
 
 Run before delivery:

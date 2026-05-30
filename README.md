@@ -1,10 +1,112 @@
-# Career Bidding Game — 智聘创新AI+大赛
+# Salary Negotiation Coach — 智聘创新AI+大赛
 
-**Multi-Agent Bayesian Hiring Game Simulation** for the Chinese tech industry.
+规则优先的多 Agent 薪资谈判教练，帮助求职者练习 HR 压价场景、理解对方信念，并生成下次面试可用的谈判备忘录。
 
-4个AI Agent（候选人、HR、面试官、市场环境）在信息不对称下的多轮薪资博弈模拟。当前版本已实现可运行的规则优先谈判引擎、交互式游戏 API、前端主流程、5个核心评估维度、简化贝叶斯均衡分析、反事实分析、AI辩论报告与信息战机制。动态博弈相关维度主要在谈判过程与复盘中呈现。
+> Current scope: this is a competition-oriented prototype, not a production hiring decision system. The authoritative path is deterministic rule-based simulation. LLM features are optional and mainly used for parsing, deliberation text, and recap expression.
 
-> Current scope: this is a competition-oriented prototype, not a production hiring decision system. LLM, retrieval, equilibrium and counterfactual modules are available, but the authoritative path is deterministic rule-based simulation with optional LLM text generation.
+## Why This Exists
+
+求职者在真实面试前，最难判断的不是“我要多少钱”，而是：什么时候坚持、什么时候让步、什么时候补充筹码、什么时候换成总包/职级/签字费来谈。
+
+Example user story:
+
+> Sarah 是一名 4 年经验的后端工程师。她不知道应该在第 2 轮坚持 82K，还是尽快接受 HR 的 72K。系统会模拟 HR 的预算与耐心，提示她先补充“高并发推送链路”的可信筹码，再把报价收敛到 76K。谈判结束后，她能看到策略树、What-if 推演和下次面试可直接使用的话术。
+
+## Product Loop
+
+1. **建立个人筹码**
+   - 导入简历/JD。
+   - 提取技能、项目、公司、稳定性、岗位匹配、薪资杠杆等信号。
+
+2. **进入教练局**
+   - HR、面试官、市场共同生成谈判上下文。
+   - `CoachPanel` 每轮给出下一步建议：坚持、让步、举证、转总包或收口。
+
+3. **使用谈薪筹码卡**
+   - 将真实经历进行强调、重组或弱化。
+   - 动作会影响 HR 信任和本地市场信誉。
+
+4. **执行谈判动作**
+   - 报价、还价、接受、拒绝、自由话术。
+   - HR 耐心、信任、外部选择判断会随轮次变化。
+
+5. **复盘并带走策略**
+   - 谈判备忘录：核心筹码、锚点、底线、成交窗口、推荐话术。
+   - 策略树：你的选择 -> HR 信念更新 -> 收益/风险变化。
+   - What-if：用滑块探索“如果第 2 轮多/少要 5K 会怎样”。
+
+## Key Features
+
+### CoachPanel
+
+- 给出当前轮次的下一步建议。
+- 解释为什么该这么做。
+- 展示 HR 画像：预算守门人、抢人型 HR、风险规避型 HR、技术导向型 HR 等。
+- 展示 HR 如何看你：信任、耐心、外部选择、底线强度、入职确定性。
+
+### Chip Cards And Reputation
+
+- 筹码卡不是鼓励虚构经历，而是训练用户如何组织真实经历。
+- 行动语义：强调、重组、弱化。
+- 本地信誉分记录长期影响：高可信筹码可提升信誉，风险较高的重组可能降低信誉。
+
+### Negotiation Memo
+
+- 将一局谈判转化为面试可用备忘录。
+- 输出核心筹码、推荐锚点、底线区间、最佳成交窗口和可直接复用的话术。
+
+### Strategy Tree
+
+- 将过程拆成决策链：
+
+  `user choice -> HR belief update -> payoff/risk change`
+
+- 用户能看到哪一步改变了谈判走向。
+
+### What-if Panel
+
+- 用户可以选择关键轮次，调整报价 `-10K` 到 `+10K`。
+- 展示成交概率、预估薪资、破裂风险和信任变化。
+- 明确标注为近似推演，不是严格重跑完整均衡模型。
+
+### Demo Fallback
+
+- 内置 25 场谈薪历史。
+- 内置固定个人档案 `Sarah Wang`。
+- 后端或 LLM 不可用时，前端仍可展示 dashboard、复盘、策略树和 What-if。
+
+## What Is Deterministic, Heuristic, Or LLM-Assisted?
+
+### Deterministic
+
+- 核心谈判状态流转。
+- 硬技能匹配与部分评分规则。
+- HR 耐心变化。
+- 筹码信誉 localStorage 更新。
+- What-if 前端近似规则。
+- Demo session fallback。
+
+### Heuristic / Explanatory
+
+- 贝叶斯风格信念更新。
+- 均衡解释。
+- HR 画像推断。
+- What-if 反事实近似。
+
+### LLM-Assisted
+
+- 简历/JD 非结构化解析。
+- HR deliberation 文本。
+- 复盘表达与 debrief chat。
+- 自由话术解释。
+
+### Not Claimed
+
+- 不是生产级招聘决策系统。
+- 不替代薪资调研、法律建议或职业咨询。
+- What-if 不是严格均衡重算。
+- 本地信誉不是现实行业信誉。
+- 当前不实时抓取招聘网站薪资数据。
 
 ## Architecture
 
@@ -14,103 +116,66 @@ bidding-game/
 │   ├── main.py           # App entry point, CORS, lifespan
 │   ├── session_store.py  # Redis-backed session persistence
 │   └── routes/           # upload, simulate, counterfactual, report, debate, game, demo, debrief_chat
-├── core/                 # Domain logic (no API dependency)
-│   ├── config.py         # Centralized configuration (env vars)
-│   ├── signal_extractor.py  # Resume → structured career signals
-│   ├── china_market_model.py # China-specific market data & rules
+├── core/                 # Domain logic
+│   ├── signal_extractor.py
+│   ├── china_market_model.py
 │   └── knowledge/        # Skill synonyms, school/company/competition classification
-├── game/                 # Game engine
-│   ├── engine.py         # Multi-round Bayesian negotiation orchestrator
+├── game/                 # Negotiation engine
+│   ├── engine.py
 │   ├── equilibrium.py    # Simplified best-response strategy analysis
-│   ├── payoff.py         # Payoff functions for all 4 agents
 │   ├── patience.py       # Dynamic bilateral patience system
 │   ├── persona.py        # HR persona generation
-│   ├── deliberation.py   # LLM deliberation (two-dimension projection)
-│   ├── beliefs.py        # Bayesian belief updating (static + dynamic likelihood)
-│   ├── infowar.py        # Information warfare: reveal / fake / conceal signals
-│   ├── strategies/       # Reusable negotiation strategies
+│   ├── beliefs.py        # Bayesian-style belief updating
+│   ├── infowar.py        # Backend signal actions, surfaced as chip packaging in UI
 │   └── players/          # Candidate, HR, Interviewer, Market agents
-├── eval/                 # Evaluation framework (5 implemented dimensions)
-│   ├── dimensions.py     # Dimension definitions & composite scoring
-│   └── scorers/          # hard.py (skill/exp match), signals.py (school/company/competition)
-├── counterfactual/       # What-if analysis engine (parallel universes)
-├── debate/               # Evidence-backed proposal builder
-├── retrieval/            # Qdrant vector search + sentence-transformers embedding (supporting module)
-├── input/                # Resume PDF parsing
-├── llm/                  # LLM client (DashScope → Ollama → mock fallback)
-├── models/               # Pydantic schemas (shared data types)
-├── data/                 # Demo profiles (10 resumes + 15 JDs)
-├── tests/                # Unit tests (pytest)
+├── eval/                 # Evaluation framework
+├── counterfactual/       # Scenario-style counterfactual engine
+├── llm/                  # LLM client (DashScope -> Ollama -> mock fallback)
+├── models/               # Shared schemas
+├── data/                 # Backend demo profiles
 ├── frontend/             # Next.js UI
-│   └── app/
-│       ├── play/         # Main negotiation game
-│       │   ├── components/   # GameHUD, ChatBubble, SalaryTugOfWar, HRAvatar,
-│       │   │               # DeliberationPanel, InfoCardHand, ParallelUniverses,
-│       │   │               # AchievementPopup, TutorialModal, NarrativeResults
-│       │   └── hooks/        # useGameSession, useNegotiation, useInfoWar,
-│       │                   # useDebrief, useAchievements, useSetup
-│       ├── simulation/   # Custom simulation page
-│       ├── analysis/     # Structured evaluation report page
-│       ├── dashboard/    # Session list and review entry
-│       └── debate/       # Evidence-backed AI debate
-├── docker/               # Dockerfiles for backend & frontend
-├── docker-compose.yml    # One-command full stack deployment
-├── run_demo.py           # CLI demo runner
-├── requirements.txt      # Python dependencies
-└── .env.example          # Environment variable template
+│   └── app/play/         # Coach mode, negotiation, recap, What-if
+├── docker/               # Dockerfiles
+├── docker-compose.yml
+└── requirements.txt
 ```
 
 ## Quick Start
 
-### Option A: Docker (Recommended)
+### Option A: Docker
 
 ```bash
-# Copy environment template and fill in your LLM API key
 cp .env.example .env
-# Edit .env: DASHSCOPE_API_KEY=your_key
+# Optional: configure DASHSCOPE_API_KEY for LLM-assisted features
 
-# Start full stack (Redis + Qdrant + Backend + Frontend)
 docker-compose up --build
 
-# Access
-# Frontend → http://localhost:3000
-# API Docs  → http://localhost:8001/docs
+# Frontend -> http://localhost:3000
+# API Docs  -> http://localhost:8001/docs
 ```
 
 ### Option B: Local Development
 
-#### Prerequisites
-- Python 3.11+
-- Node.js 18+ (for frontend)
-- Redis 7+ (optional, falls back to in-memory session)
-- Qdrant (optional, falls back to in-memory vector store)
-
-#### Backend
+Backend:
 
 ```bash
-# Create virtual environment
 python -m venv .venv
 .venv\Scripts\activate  # Windows
 source .venv/bin/activate  # Linux/Mac
 
-# Install dependencies
 pip install -e .
-
-# Configure LLM (optional — falls back to rule-based mode)
-cp .env.example .env
-# Edit .env: DASHSCOPE_API_KEY=your_key
-
-# Run server
 uvicorn api.main:app --host 0.0.0.0 --port 8001 --reload
 ```
 
-#### Frontend
+Frontend:
 
 ```bash
 cd frontend
 npm install
-npm run dev  # → http://localhost:3000
+npm run dev
 ```
+
+Open `http://localhost:3000`.
 
 ### Tests
 
@@ -118,33 +183,32 @@ npm run dev  # → http://localhost:3000
 pytest tests/ -v
 ```
 
-## Game Flow
+Frontend validation:
 
-1. **Upload** — Candidate uploads resume PDF → parsed into structured data
-2. **Signal Extraction** — Structured career signals are extracted: skill match, school prestige, company pedigree, growth trajectory, negotiation leverage, stability risk, T-shape skill assessment, etc.
-3. **Game Simulation** — 4-agent rule-first Bayesian-style negotiation:
-   - Market emits macro signals (supply/demand ratio, salary trends, hot skills)
-   - Interviewer evaluates candidate (skill/experience/domain/soft skills)
-   - Candidate and HR negotiate salary/level via alternating offers
-   - Patience levels change dynamically based on actions and signals
-4. **Information Warfare** — Candidate can strategically **reveal**, **exaggerate**, or **conceal** resume signals, affecting HR trust and bargaining power
-5. **Equilibrium Analysis** — Simplified discrete best-response analysis for strategy explanation
-6. **Parallel Universes** — Scenario-style alternative histories showing how different choices could affect the outcome
-7. **Debate & Debrief** — Structured proposal with computation traces, plus interactive AI chat for post-game analysis
+```bash
+cd frontend
+npm run lint
+npm run build
+```
 
 ## Key Design Decisions
 
-- **Deterministic-first**: Core scoring and game mechanics are rule-based. LLM is optional for parsing, deliberation text and natural-language generation, with rule-based fallback.
-- **China-specific**: Encodes real Chinese internet industry structures — Alibaba P-levels, company tiers, implicit age thresholds, talent flow networks.
-- **Computation traces**: Key report numbers include computation paths where implemented; some narrative and scenario outputs remain explanatory rather than statistically validated.
-- **Patience-based termination**: Negotiation ends when either side's patience runs out — not a fixed timer.
-- **Information asymmetry as gameplay**: The "info war" mechanic turns signal manipulation into a core strategic layer, not just a data pipeline step.
+- **Salary-coach first**: the product is framed around helping candidates make better salary decisions, not around showing every possible game-theory module.
+- **Rule-first**: core mechanics use deterministic rules; LLM output is optional and bounded.
+- **China-specific**: includes Chinese internet-company structures, levels, company tiers, age/stability signals, and talent-flow assumptions.
+- **Transparent boundaries**: simplified belief/equilibrium/What-if outputs are explicitly marked as explanatory or approximate.
+- **Ethical chip packaging**: UI language uses emphasize/reframe/downplay, with reputation consequences, rather than encouraging deception.
+
+## Demo And Review Docs
+
+- `docs/demo-checklist.md` — recommended demo path, fallback plan, and pitch.
+- `docs/judges-faq.md` — prepared answers for theory, LLM, What-if, reputation, and data-boundary questions.
 
 ## Environment Variables
 
 | Variable | Default | Description |
 |----------|---------|-------------|
-| `DASHSCOPE_API_KEY` | (none) | DashScope API key for LLM features |
+| `DASHSCOPE_API_KEY` | (none) | DashScope API key for optional LLM features |
 | `LLM_MODEL` | `qwen-plus` | LLM model name |
 | `LLM_API_BASE` | `https://dashscope.aliyuncs.com/compatible-mode/v1` | LLM API endpoint |
 | `CORS_ORIGINS` | `http://localhost:3000,...` | Allowed CORS origins |
@@ -156,10 +220,7 @@ pytest tests/ -v
 | `QDRANT_URL` | `http://localhost:6333` | Qdrant vector DB URL |
 | `QDRANT_MEMORY` | `false` | Use in-memory Qdrant instead of server |
 | `REDIS_URL` | `redis://localhost:6379/0` | Redis connection URL |
-| `REDIS_HOST` | `localhost` | Redis host |
-| `REDIS_PORT` | `6379` | Redis port |
-| `SESSION_TTL` | `14400` | Session TTL in seconds (default 4h) |
-| `DEBUG` | `false` | Enable debug logging |
+| `SESSION_TTL` | `14400` | Session TTL in seconds |
 
 ## License
 
