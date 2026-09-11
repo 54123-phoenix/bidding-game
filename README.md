@@ -1,5 +1,7 @@
 # Salary Negotiation Coach — 智聘创新AI+大赛
 
+[![CI](https://github.com/54123-phoenix/bidding-game/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/54123-phoenix/bidding-game/actions/workflows/ci.yml)
+
 规则优先的多 Agent 薪资谈判教练，帮助求职者练习 HR 压价场景、理解对方信念，并生成下次面试可用的谈判备忘录。
 
 > Current scope: this is a competition-oriented prototype, not a production hiring decision system. The authoritative path is deterministic rule-based simulation. LLM features are optional and mainly used for parsing, deliberation text, and recap expression.
@@ -191,6 +193,14 @@ npm run lint
 npm run build
 ```
 
+### Verified Baseline
+
+- Backend: **148 tests passed** with Python 3.11.9 on 2026-09-11.
+- Frontend: ESLint completed with 0 errors and 12 warnings; the Next.js production build completed successfully on 2026-09-11.
+- The automated test suite excludes `tests/manual/`, which contains optional service-level checks.
+- The repository is a competition prototype; it has not been validated as a production hiring or compensation system.
+- Evidence and contribution boundaries are summarized in [PROJECT_EVIDENCE.md](PROJECT_EVIDENCE.md).
+
 ## Key Design Decisions
 
 - **Salary-coach first**: the product is framed around helping candidates make better salary decisions, not around showing every possible game-theory module.
@@ -224,4 +234,4 @@ npm run build
 
 ## License
 
-This project is developed for the Alibaba Cloud 智聘创新AI+大赛.
+This project is developed for the Alibaba Cloud 智聘创新AI+大赛. No open-source license has been granted yet; unless a license is added, the source remains all rights reserved by default.
